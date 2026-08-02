@@ -156,8 +156,9 @@ Costs that surprise people, in order of how often they surprise people:
 
 1. **EKS extended support** — $0.60/hr, a 6× jump per cluster. An expired
    version costs more than the entire observability stack.
-2. **NAT data processing** — $0.045/GB. Use the free S3 gateway endpoint, which
-   covers ECR layer pulls.
+2. **Public-subnet nodes** — there are no NAT gateways ([ADR 0005](adr/0005-public-subnets-no-nat.md)),
+   so nodes carry public IPs and the security group is the only barrier. IMDSv2
+   with hop limit 1 is mandatory, not advisory.
 3. **Cross-AZ traffic** — $0.02/GB round trip. A service mesh will route across
    AZs unless told not to.
 4. **Observability retention** — Prometheus, Loki and Elasticsearch on EBS grow

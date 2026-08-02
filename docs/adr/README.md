@@ -31,3 +31,4 @@ Not for: routine configuration, reversible tweaks, anything a comment covers.
 | [0002](0002-single-cluster.md) | One EKS cluster, environments as namespaces | Accepted |
 | [0003](0003-single-workload-account.md) | One workload account, management kept empty | Accepted |
 | [0004](0004-terraform-state-segmentation.md) | Terraform state segmented by layer | Accepted |
+| [0005](0005-public-subnets-no-nat.md) | Public subnets only, no NAT gateway, IPv4 | Accepted |
