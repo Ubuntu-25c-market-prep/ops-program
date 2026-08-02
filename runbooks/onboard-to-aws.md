@@ -126,8 +126,22 @@ replacement destroys that person's password and registered MFA device. Use
   setting with no Terraform resource and nothing detects it being turned off.
 - **Never assign a permission set to a user.** Assignments go to groups. A direct
   user assignment is invisible when you audit group membership, and outlives the
-  person's involvement. One such assignment predates this configuration and
-  should be removed by hand once every CTO has signed in through
-  `u25c-PlatformAdmin`.
+  person's involvement.
+
+  The console setup that predates this configuration assigned the CTO directly to
+  a console-made `AdministratorAccess` permission set on **all four** accounts.
+  The Dev one is removed; group membership covers it. The management one is also
+  redundant. The Staging and Prod ones are the only Identity Center access those
+  accounts have — removing them leaves `OrganizationAccountAccessRole` from the
+  management account as the only way in, which is defensible while the dormant OU
+  denies everything but inspection anyway. Audit with:
+
+  ```bash
+  for a in <accounts>; do
+    aws sso-admin list-account-assignments --instance-arn <arn> \
+      --account-id "$a" --permission-set-arn <arn> \
+      --query 'AccountAssignments[?PrincipalType==`USER`]'
+  done
+  ```
 - **Keep `people.tf` and `roster.yaml` in step.** Nothing enforces this. It is
   checked during onboarding review, which is the only time anyone looks.
