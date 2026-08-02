@@ -16,6 +16,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 DRY = os.environ.get("DRY_RUN") == "1"
+# ASSIGN_ONLY=1 skips project field and sub-issue work, which is already done.
+ASSIGN_ONLY = os.environ.get("ASSIGN_ONLY") == "1"
 
 
 def gh(*args: str, check: bool = True) -> str:
@@ -71,9 +73,16 @@ def existing_issues(repo: str) -> dict[str, dict]:
     """title -> {number, id} for every issue in the repo (open or closed)."""
     rows = gh_json(
         "issue", "list", "--repo", f"{ORG}/{repo}", "--state", "all",
-        "--limit", "1000", "--json", "number,title,id",
+        "--limit", "1000", "--json", "number,title,id,assignees",
     ) or []
-    return {r["title"]: {"number": r["number"], "id": r["id"]} for r in rows}
+    return {
+        r["title"]: {
+            "number": r["number"],
+            "id": r["id"],
+            "assignees": {a["login"].lower() for a in (r.get("assignees") or [])},
+        }
+        for r in rows
+    }
 
 
 CACHE: dict[str, dict[str, dict]] = {}
@@ -98,8 +107,20 @@ def ensure_issue(repo: str, title: str, body: str, labels: list[str],
                  assignees: list[str]) -> dict:
     idx = issue_index(repo)
     if title in idx:
-        print(f"    = {repo}#{idx[title]['number']} {title[:64]}")
-        return idx[title]
+        rec = idx[title]
+        # Backfill assignees. GitHub refuses to assign non-members, so people who
+        # had not accepted their invitation on an earlier run were skipped. This
+        # is what makes re-running after they join actually do something.
+        missing = [a for a in assignees if a.lower() not in rec.get("assignees", set())]
+        if missing and not DRY:
+            gh("issue", "edit", str(rec["number"]), "--repo", f"{ORG}/{repo}",
+               *[arg for a in missing for arg in ("--add-assignee", a)], check=False)
+            print(f"    ~ {repo}#{rec['number']} +{','.join(missing)}")
+        elif missing:
+            print(f"    ~ [dry] {repo}#{rec['number']} would add {','.join(missing)}")
+        else:
+            print(f"    = {repo}#{rec['number']} {title[:56]}")
+        return rec
 
     if DRY:
         print(f"    + [dry] {repo} {title[:64]}")
@@ -122,7 +143,7 @@ def ensure_issue(repo: str, title: str, body: str, labels: list[str],
 
 
 def link_sub_issue(parent_id: str, child_id: str) -> None:
-    if DRY or parent_id == "dry" or child_id == "dry":
+    if ASSIGN_ONLY or DRY or parent_id == "dry" or child_id == "dry":
         return
     gh("api", "graphql",
        "-f", f"parent={parent_id}", "-f", f"child={child_id}",
@@ -133,7 +154,7 @@ def link_sub_issue(parent_id: str, child_id: str) -> None:
 
 
 def add_to_project(issue_id: str, fields: dict[str, str]) -> None:
-    if DRY or issue_id == "dry":
+    if ASSIGN_ONLY or DRY or issue_id == "dry":
         return
     out = gh_json("api", "graphql",
                   "-f", f"project={PROJECT_ID}", "-f", f"content={issue_id}",
