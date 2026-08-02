@@ -130,11 +130,14 @@ replacement destroys that person's password and registered MFA device. Use
 
   The console setup that predates this configuration assigned the CTO directly to
   a console-made `AdministratorAccess` permission set on **all four** accounts.
-  The Dev one is removed; group membership covers it. The management one is also
-  redundant. The Staging and Prod ones are the only Identity Center access those
-  accounts have — removing them leaves `OrganizationAccountAccessRole` from the
-  management account as the only way in, which is defensible while the dormant OU
-  denies everything but inspection anyway. Audit with:
+  Dev and management are removed — `u25c-cto` → `u25c-PlatformAdmin` covers both.
+
+  **Staging and Prod keep theirs deliberately.** The four-tier design assigns
+  only into Dev and management, so that direct assignment is the only Identity
+  Center access those two accounts have; removing it would leave
+  `OrganizationAccountAccessRole` from the management account as the only way in.
+  They are the documented exception, not an oversight — if the dormant OU is ever
+  emptied, revisit both this and ADR 0007. Audit with:
 
   ```bash
   for a in <accounts>; do
