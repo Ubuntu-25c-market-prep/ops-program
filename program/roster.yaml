@@ -1,0 +1,51 @@
+# Canonical roster: roster name -> GitHub account -> workstreams.
+# Source of truth for team membership and issue assignment.
+# 17 accounts are in the org; 16 map to the roster. Bakmurat is unmapped.
+
+workstream_members:
+  infra:      [aslantishbek, dianadi11, ElenaPinar]
+  security:   [katoteshiku1989, romanhumeniuk312, cristianarseni]
+  scaling:    [sergiidan, bloomingirl, Drdmytrush90]
+  argocd:     [ElenaPinar, Drdmytrush90, bloomingirl]
+  flux:       [dianadi11, ZarinaSagynalieva, tatinatech]
+  monitoring: [tatinatech, katoteshiku1989, romanhumeniuk312]
+  logging:    [Nikita-DS22, romanhumeniuk312, katoteshiku1989]
+  tracing:    [sevgiabaysal, ElenaPinar, aslantishbek, dianadi11]
+  utils:      [Drdmytrush90, Nikita-DS22, kadze]
+  velero:     [cristianarseni, kadze, bloomingirl]
+  rancher:    [Vera-Terna, sevgiabaysal, Nikita-DS22]
+  finops:     [ZarinaSagynalieva, Vera-Terna, zhemaitite-anastasiia]
+  istio:      [kadze, cristianarseni, zhemaitite-anastasiia, sevgiabaysal]
+  zerotrust:  [zhemaitite-anastasiia, sergiidan, ZarinaSagynalieva]
+  bedrock:    [aslantishbek, tatinatech, sergiidan]
+
+roles:
+  cto: [aslantishbek, sevgiabaysal]
+  pm:  [ElenaPinar, dianadi11]
+
+people:
+  - {name: "Aslan",    github: aslantishbek,          roles: [cto], workstreams: [infra, tracing, bedrock]}
+  - {name: "Sevgi",    github: sevgiabaysal,          roles: [cto], workstreams: [tracing, rancher, istio]}
+  - {name: "Elena",    github: ElenaPinar,            roles: [pm],  workstreams: [infra, argocd, tracing]}
+  - {name: "Diana",    github: dianadi11,             roles: [pm],  workstreams: [infra, flux, tracing]}
+  - {name: "Andrii P", github: katoteshiku1989,       roles: [],    workstreams: [security, monitoring, logging]}
+  - {name: "Roman",    github: romanhumeniuk312,      roles: [],    workstreams: [security, monitoring, logging]}
+  - {name: "Sergii",   github: sergiidan,             roles: [],    workstreams: [scaling, zerotrust, bedrock]}
+  - {name: "Hanna",    github: bloomingirl,           roles: [],    workstreams: [scaling, argocd, velero]}
+  - {name: "Dmytro",   github: Drdmytrush90,          roles: [],    workstreams: [scaling, argocd, utils]}
+  - {name: "Zarina",   github: ZarinaSagynalieva,     roles: [],    workstreams: [flux, finops, zerotrust]}
+  - {name: "Tatina",   github: tatinatech,            roles: [],    workstreams: [flux, monitoring, bedrock]}
+  - {name: "Nikita",   github: Nikita-DS22,           roles: [],    workstreams: [logging, utils, rancher]}
+  - {name: "Andrii Sh",github: kadze,                 roles: [],    workstreams: [utils, velero, istio]}
+  - {name: "Chris",    github: cristianarseni,        roles: [],    workstreams: [security, velero, istio]}
+  - {name: "Vera",     github: Vera-Terna,            roles: [],    workstreams: [rancher, finops]}
+  - {name: "Nastya",   github: zhemaitite-anastasiia, roles: [],    workstreams: [finops, istio, zerotrust]}
+
+# In the org but not on the source roster. Currently in platform-all only.
+unmapped:
+  - {github: Bakmurat, note: "17th account - workstreams not yet assigned"}
+
+# Known imbalance carried from the source roster.
+notes:
+  - "Vera has 2 workstreams; everyone else has 3. Monitoring is the natural third if you want to level it."
+  - "Chris was added to Security - the source roster listed only 2 members with a trailing comma."

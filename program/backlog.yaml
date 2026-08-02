@@ -1,0 +1,337 @@
+# Program backlog. Epics live in ops-program; tasks are created in the repo where the
+# work lands and linked as GitHub sub-issues. Assignees come from roster.yaml by workstream.
+# Seeded by scripts/seed-backlog.sh (idempotent, matches on title).
+
+org: Ubuntu-25c-market-prep
+project_number: 1
+epic_repo: ops-program
+
+epics:
+
+  - key: bootstrap
+    title: "[ops] Org bootstrap: repos, teams, protection, labels, board"
+    workstream: infra
+    override_assignees: [aslantishbek, sevgiabaysal, ElenaPinar, dianadi11]
+    layer: ops
+    wave: 0
+    priority: P1
+    body: |
+      Stand up the GitHub organisation so 16 people can work without stepping on each other.
+      Owned jointly by CTO and PM.
+    tasks:
+      - {title: "[ops] Create the 10 program repositories", repo: ops-program, size: S}
+      - {title: "[ops] Create 18 teams and assign all members", repo: ops-program, size: S}
+      - {title: "[ops] Apply team to repository permission matrix", repo: ops-program, size: S}
+      - {title: "[ops] Apply the 35-label taxonomy to every repo", repo: ops-program, size: S}
+      - {title: "[ops] Commit CODEOWNERS and enable branch protection", repo: ops-program, size: S}
+      - {title: "[ops] Create the Platform Build project board and its views", repo: ops-program, size: M}
+      - {title: "[ops] Write CONTRIBUTING and the naming-convention reference", repo: ops-program, size: M}
+      - {title: "[ops] Add issue and pull request templates to .github", repo: .github, size: S}
+
+  - key: aws-foundation
+    title: "[security] AWS Organization, accounts, IAM Identity Center, GitHub OIDC"
+    workstream: security
+    layer: infra
+    wave: 1
+    priority: P1
+    body: |
+      Everything else in the programme sits on this. No cluster work can start until
+      accounts exist and CI can assume a role without static credentials.
+    tasks:
+      - {title: "[security] Create AWS Organization and the account structure", repo: infra-aws, size: M}
+      - {title: "[security] Enable CloudTrail org trail, Config, GuardDuty, Security Hub", repo: infra-aws, size: M}
+      - {title: "[security] Configure IAM Identity Center with permission sets per workstream", repo: infra-aws, size: L}
+      - {title: "[security] Create the GitHub OIDC provider and per-repo deploy roles", repo: infra-aws, size: M}
+      - {title: "[security] Author SCP guardrails: region lock, instance families, root user", repo: infra-aws, size: M}
+      - {title: "[security] Provision KMS keys and the tfstate S3 bucket with locking", repo: infra-aws, size: M}
+      - {title: "[security] Write the tagging standard and enforce it with AWS tag policies", repo: infra-aws, size: M}
+
+  - key: network
+    title: "[infra] VPC, subnets, NAT, VPC endpoints, Route 53"
+    workstream: infra
+    layer: infra
+    wave: 1
+    priority: P1
+    body: |
+      Single-VPC topology for the single-cluster design. Cost-sensitive: NAT and interface
+      endpoints are the two lines that move most.
+    tasks:
+      - {title: "[infra] Build the reusable VPC Terraform module", repo: infra-modules, size: L}
+      - {title: "[infra] Provision the platform VPC across 3 AZs", repo: infra-aws, size: M}
+      - {title: "[infra] Configure NAT gateways and validate the cost model", repo: infra-aws, size: M}
+      - {title: "[infra] Add S3 and ECR gateway endpoints to cut NAT egress", repo: infra-aws, size: M}
+      - {title: "[infra] Add interface endpoints only where they beat NAT on cost", repo: infra-aws, size: M}
+      - {title: "[infra] Set up Route 53 hosted zones and delegation", repo: infra-aws, size: S}
+      - {title: "[infra] Enable VPC flow logs to S3", repo: infra-aws, size: S}
+
+  - key: eks
+    title: "[infra] EKS cluster, node groups, ECR, core addons"
+    workstream: infra
+    layer: infra
+    wave: 2
+    priority: P1
+    body: |
+      One cluster, environments as namespaces. Upgrade cadence is a budget control:
+      EKS extended support is $0.60/hr, a 6x jump per cluster.
+    tasks:
+      - {title: "[infra] Build the reusable EKS Terraform module", repo: infra-modules, size: L}
+      - {title: "[infra] Provision the EKS cluster with OIDC and Pod Identity", repo: infra-aws, size: L}
+      - {title: "[infra] Create the managed node group baseline on Graviton", repo: infra-aws, size: M}
+      - {title: "[infra] Install core addons: vpc-cni, ebs-csi, coredns, kube-proxy", repo: platform-addons, size: M}
+      - {title: "[infra] Provision ECR repositories with lifecycle policies", repo: infra-aws, size: S}
+      - {title: "[infra] Define namespace, ResourceQuota and LimitRange per environment", repo: platform-addons, size: M}
+      - {title: "[infra] Write the EKS upgrade runbook and rehearsal procedure", repo: ops-program, size: M}
+
+  - key: karpenter
+    title: "[scaling] Karpenter NodePools: Graviton, Spot, consolidation"
+    workstream: scaling
+    layer: platform
+    wave: 2
+    priority: P1
+    body: |
+      The single largest cost lever in the build. Spot-first with consolidation, plus a
+      dedicated on-demand pool so prod workloads never share Spot nodes with dev.
+    tasks:
+      - {title: "[scaling] Install Karpenter with its IRSA role and interruption queue", repo: platform-addons, size: M}
+      - {title: "[scaling] Define Spot-first NodePools on arm64 with consolidation", repo: platform-addons, size: M}
+      - {title: "[scaling] Define an on-demand NodePool with taints for prod workloads", repo: platform-addons, size: M}
+      - {title: "[scaling] Add a scheduled scale-to-zero for non-prod nights and weekends", repo: platform-addons, size: M}
+      - {title: "[scaling] Validate Spot interruption handling under drain", repo: platform-addons, size: M}
+      - {title: "[scaling] Document node provisioning behaviour for app teams", repo: ops-program, size: S}
+
+  - key: flux
+    title: "[flux] Flux bootstrap and platform GitOps structure"
+    workstream: flux
+    layer: gitops
+    wave: 3
+    priority: P1
+    body: |
+      Gates every add-on that follows. Directory layout has to support per-workstream
+      ownership without cross-team merge contention.
+    tasks:
+      - {title: "[flux] Bootstrap Flux against gitops-flux", repo: gitops-flux, size: M}
+      - {title: "[flux] Define the repository layout and Kustomization dependency graph", repo: gitops-flux, size: L}
+      - {title: "[flux] Wire HelmRepository sources for all platform charts", repo: gitops-flux, size: M}
+      - {title: "[flux] Configure per-environment value overlays", repo: gitops-flux, size: M}
+      - {title: "[flux] Set up Flux alerting to the team notification channel", repo: gitops-flux, size: S}
+      - {title: "[flux] Write the GitOps contribution runbook for add-on owners", repo: ops-program, size: M}
+
+  - key: utils
+    title: "[utils] cert-manager, external-dns, sealed-secrets"
+    workstream: utils
+    layer: platform
+    wave: 3
+    priority: P1
+    body: |
+      Prerequisites for Istio gateways, every ingress hostname, and all secret material.
+      Nothing with a TLS endpoint can ship before this lands.
+    tasks:
+      - {title: "[utils] Install cert-manager with a Route 53 DNS-01 issuer", repo: platform-addons, size: M}
+      - {title: "[utils] Install external-dns scoped to the platform hosted zone", repo: platform-addons, size: M}
+      - {title: "[utils] Install sealed-secrets and back up the controller key", repo: platform-addons, size: M}
+      - {title: "[utils] Define the secret-management convention and rotation policy", repo: ops-program, size: M}
+      - {title: "[utils] Issue and verify the first wildcard certificate", repo: platform-addons, size: S}
+      - {title: "[utils] Write the sealed-secret authoring runbook", repo: ops-program, size: S}
+
+  - key: kyverno
+    title: "[security] Kyverno and Policy Reporter baseline policy set"
+    workstream: security
+    layer: platform
+    wave: 3
+    priority: P1
+    body: |
+      Admission control is what makes single-cluster tenancy safe. Tag enforcement here
+      is also what makes FinOps showback possible later.
+    tasks:
+      - {title: "[security] Install Kyverno in high availability", repo: platform-security, size: M}
+      - {title: "[security] Author pod security baseline policies in audit mode", repo: platform-security, size: L}
+      - {title: "[security] Enforce required workstream and owner labels on all workloads", repo: platform-security, size: M}
+      - {title: "[security] Add policies restricting cross-namespace IRSA usage", repo: platform-security, size: L}
+      - {title: "[security] Install Policy Reporter with a Grafana-visible backend", repo: platform-security, size: M}
+      - {title: "[security] Promote baseline policies from audit to enforce", repo: platform-security, size: M}
+
+  - key: istio
+    title: "[istio] Service mesh and Kiali"
+    workstream: istio
+    layer: platform
+    wave: 4
+    priority: P1
+    body: |
+      Gates the ZeroTrust epic. Topology-aware routing matters here: cross-AZ mesh traffic
+      is billed at $0.02/GB round trip and compounds quietly.
+    tasks:
+      - {title: "[istio] Install istiod via Helm with a revision-based upgrade path", repo: platform-addons, size: L}
+      - {title: "[istio] Deploy ingress and egress gateways behind an NLB", repo: platform-addons, size: M}
+      - {title: "[istio] Enable sidecar injection per namespace with an opt-in label", repo: platform-addons, size: M}
+      - {title: "[istio] Configure topology-aware routing to contain cross-AZ cost", repo: platform-addons, size: M}
+      - {title: "[istio] Install Kiali wired to the Prometheus backend", repo: platform-addons, size: M}
+      - {title: "[istio] Define Gateway and VirtualService conventions for app teams", repo: ops-program, size: M}
+      - {title: "[istio] Run a mesh upgrade rehearsal on a revision canary", repo: platform-addons, size: L}
+
+  - key: keda
+    title: "[scaling] KEDA and HPA workload autoscaling"
+    workstream: scaling
+    layer: platform
+    wave: 4
+    priority: P2
+    body: |
+      Event-driven scaling for business workloads, layered on top of Karpenter node scaling.
+    tasks:
+      - {title: "[scaling] Install KEDA with its IRSA role", repo: platform-addons, size: M}
+      - {title: "[scaling] Define ScaledObject templates for the common triggers", repo: platform-addons, size: M}
+      - {title: "[scaling] Configure HPA defaults and resource recommendations", repo: platform-addons, size: M}
+      - {title: "[scaling] Load-test the scaling path end to end", repo: platform-addons, size: L}
+      - {title: "[scaling] Document the autoscaling golden path", repo: ops-program, size: S}
+
+  - key: monitoring
+    title: "[monitoring] Prometheus, Grafana and alerting"
+    workstream: monitoring
+    layer: platform
+    wave: 5
+    priority: P1
+    body: |
+      Self-hosted rather than AMP/AMG, which is worth roughly $200/mo. Retention tiering
+      has to be designed in up front or storage grows without bound.
+    tasks:
+      - {title: "[monitoring] Install kube-prometheus-stack with persistent storage", repo: platform-observability, size: L}
+      - {title: "[monitoring] Configure retention tiering to S3 to cap EBS growth", repo: platform-observability, size: L}
+      - {title: "[monitoring] Build the platform overview and per-workstream dashboards", repo: platform-observability, size: L}
+      - {title: "[monitoring] Define alert rules and routing per workstream", repo: platform-observability, size: M}
+      - {title: "[monitoring] Wire Grafana SSO to IAM Identity Center", repo: platform-observability, size: M}
+      - {title: "[monitoring] Define the SLO framework and first three SLOs", repo: ops-program, size: L}
+      - {title: "[monitoring] Write the alert triage runbook", repo: ops-program, size: M}
+
+  - key: logging
+    title: "[logging] EFK logging pipeline"
+    workstream: logging
+    layer: platform
+    wave: 5
+    priority: P2
+    body: |
+      Elasticsearch is the heaviest single add-on in the stack, roughly $200/mo of node
+      compute. Index lifecycle management is not optional here.
+    tasks:
+      - {title: "[logging] Install Elasticsearch with appropriate resource requests", repo: platform-observability, size: L}
+      - {title: "[logging] Deploy Fluent Bit as a log-shipping DaemonSet", repo: platform-observability, size: M}
+      - {title: "[logging] Install Kibana with SSO", repo: platform-observability, size: M}
+      - {title: "[logging] Configure index lifecycle management and retention", repo: platform-observability, size: M}
+      - {title: "[logging] Define the log schema and required structured fields", repo: ops-program, size: M}
+      - {title: "[logging] Benchmark ingest cost and report against the FinOps budget", repo: platform-observability, size: M}
+
+  - key: tracing
+    title: "[tracing] OpenTelemetry Collector and Jaeger"
+    workstream: tracing
+    layer: platform
+    wave: 5
+    priority: P2
+    body: |
+      Tail sampling is the cost control. Untuned trace ingest is the second classic
+      observability cost trap after retention.
+    tasks:
+      - {title: "[tracing] Install the OpenTelemetry Operator and Collector", repo: platform-observability, size: L}
+      - {title: "[tracing] Deploy Jaeger with a persistent storage backend", repo: platform-observability, size: M}
+      - {title: "[tracing] Configure tail sampling to control ingest volume", repo: platform-observability, size: L}
+      - {title: "[tracing] Define the instrumentation contract for service owners", repo: ops-program, size: M}
+      - {title: "[tracing] Auto-instrument one reference service end to end", repo: platform-observability, size: M}
+      - {title: "[tracing] Correlate traces with logs and metrics in Grafana", repo: platform-observability, size: M}
+
+  - key: finops
+    title: "[finops] Kubecost visibility and showback"
+    workstream: finops
+    layer: platform
+    wave: 5
+    priority: P2
+    body: |
+      Depends on the tagging standard from aws-foundation and Kyverno label enforcement.
+      Owns the monthly cost review against the target of roughly $2,400/mo.
+    tasks:
+      - {title: "[finops] Install Kubecost with the AWS cost allocation integration", repo: platform-observability, size: M}
+      - {title: "[finops] Build per-namespace and per-workstream showback dashboards", repo: platform-observability, size: M}
+      - {title: "[finops] Configure AWS Budgets and cost anomaly detection", repo: infra-aws, size: M}
+      - {title: "[finops] Audit Graviton and Spot coverage against the target mix", repo: platform-observability, size: M}
+      - {title: "[finops] Establish the monthly cost review ritual and template", repo: ops-program, size: S}
+      - {title: "[finops] Evaluate Compute Savings Plans once usage stabilises", repo: ops-program, size: M}
+
+  - key: argocd
+    title: "[argocd] Argo CD, Argo Workflows and business app delivery"
+    workstream: argocd
+    layer: gitops
+    wave: 6
+    priority: P1
+    body: |
+      Second GitOps controller, deliberately scoped to business apps so platform and
+      product delivery can move at different cadences.
+    tasks:
+      - {title: "[argocd] Install Argo CD with SSO and RBAC per workstream", repo: gitops-argocd, size: L}
+      - {title: "[argocd] Define the ApplicationSet pattern for business apps", repo: gitops-argocd, size: L}
+      - {title: "[argocd] Install Argo Workflows with artifact storage in S3", repo: gitops-argocd, size: M}
+      - {title: "[argocd] Establish the Argo CD and Flux boundary contract", repo: ops-program, size: M}
+      - {title: "[argocd] Scaffold the first business application", repo: apps-business, size: L}
+      - {title: "[argocd] Build the container image pipeline with multi-arch support", repo: apps-business, size: L}
+      - {title: "[argocd] Define the promotion path across dev, stage and prod namespaces", repo: gitops-argocd, size: M}
+
+  - key: velero
+    title: "[velero] Backup, restore and disaster recovery drills"
+    workstream: velero
+    layer: platform
+    wave: 6
+    priority: P2
+    body: |
+      A backup that has never been restored is not a backup. The restore drill is the
+      deliverable, not the install.
+    tasks:
+      - {title: "[velero] Install Velero with an S3 backup target and IRSA", repo: platform-addons, size: M}
+      - {title: "[velero] Define backup schedules and retention per namespace", repo: platform-addons, size: M}
+      - {title: "[velero] Configure EBS volume snapshotting", repo: platform-addons, size: M}
+      - {title: "[velero] Run a full namespace restore drill and record the RTO", repo: platform-addons, size: L}
+      - {title: "[velero] Write the disaster recovery runbook", repo: ops-program, size: M}
+      - {title: "[velero] Alert on backup failure through the monitoring stack", repo: platform-addons, size: S}
+
+  - key: rancher
+    title: "[rancher] Multi-cluster management"
+    workstream: rancher
+    layer: platform
+    wave: 6
+    priority: P3
+    body: |
+      Manages EKS today and the hybrid home k3s cluster when a service moves there.
+      This is the epic that proves the hybrid-ready design actually works.
+    tasks:
+      - {title: "[rancher] Install Rancher with cert-manager-issued TLS", repo: platform-addons, size: L}
+      - {title: "[rancher] Import the EKS cluster as a managed downstream cluster", repo: platform-addons, size: M}
+      - {title: "[rancher] Configure Rancher RBAC mapped to the workstream teams", repo: platform-addons, size: M}
+      - {title: "[rancher] Stand up the Tailscale tailnet linking home and VPC", repo: infra-aws, size: L}
+      - {title: "[rancher] Register the home k3s cluster and prove hybrid management", repo: platform-addons, size: L}
+
+  - key: zerotrust
+    title: "[zerotrust] STRICT mTLS, authorization policy and workload identity"
+    workstream: zerotrust
+    layer: platform
+    wave: 7
+    priority: P2
+    body: |
+      Depends on Istio. In a single-cluster design this is what keeps a dev-namespace pod
+      from reaching a prod service or assuming a prod IAM role.
+    tasks:
+      - {title: "[zerotrust] Enable STRICT mTLS across platform namespaces", repo: platform-security, size: L}
+      - {title: "[zerotrust] Author default-deny AuthorizationPolicies per namespace", repo: platform-security, size: L}
+      - {title: "[zerotrust] Add default-deny NetworkPolicies as a second layer", repo: platform-security, size: M}
+      - {title: "[zerotrust] Condition every IRSA trust policy on namespace and service account", repo: infra-aws, size: L}
+      - {title: "[zerotrust] Verify workload identity with SPIFFE IDs end to end", repo: platform-security, size: M}
+      - {title: "[zerotrust] Run a cross-namespace escalation test and document findings", repo: platform-security, size: L}
+
+  - key: bedrock
+    title: "[bedrock] AWS Bedrock integration"
+    workstream: bedrock
+    layer: infra
+    wave: 7
+    priority: P3
+    body: |
+      Private-path access to Bedrock from cluster workloads, with guardrails and cost
+      controls in place before anyone is given a model endpoint.
+    tasks:
+      - {title: "[bedrock] Enable Bedrock model access and configure guardrails", repo: infra-aws, size: M}
+      - {title: "[bedrock] Create VPC endpoints for private Bedrock access", repo: infra-aws, size: M}
+      - {title: "[bedrock] Define least-privilege IRSA roles for model invocation", repo: infra-aws, size: M}
+      - {title: "[bedrock] Add token usage and cost monitoring dashboards", repo: platform-observability, size: M}
+      - {title: "[bedrock] Build a reference workload that invokes a model", repo: apps-business, size: L}
