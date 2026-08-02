@@ -1,4 +1,4 @@
 # Program tracking: epics, backlog manifest, ADRs, runbooks.
 /program/    @Ubuntu-25c-market-prep/pm
-/adr/        @Ubuntu-25c-market-prep/pm @Ubuntu-25c-market-prep/cto
+/docs/adr/   @Ubuntu-25c-market-prep/pm @Ubuntu-25c-market-prep/cto
 *            @Ubuntu-25c-market-prep/pm @Ubuntu-25c-market-prep/cto

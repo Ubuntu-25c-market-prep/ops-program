@@ -33,3 +33,5 @@ Not for: routine configuration, reversible tweaks, anything a comment covers.
 | [0004](0004-terraform-state-segmentation.md) | Terraform state segmented by layer | Accepted |
 | [0005](0005-public-subnets-no-nat.md) | Public subnets only, no NAT gateway, IPv4 | Accepted |
 | [0006](0006-single-az-node-placement.md) | Two AZs of subnets, all node capacity in one | Accepted |
+| [0007](0007-ou-layout-and-scp-guardrails.md) | Two OUs, guardrails on the OUs and never on the root | Accepted |
+| [0008](0008-identity-center-four-tier-access.md) | Four permission sets, not fifteen | Accepted |
