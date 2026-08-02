@@ -32,3 +32,4 @@ Not for: routine configuration, reversible tweaks, anything a comment covers.
 | [0003](0003-single-workload-account.md) | One workload account, management kept empty | Accepted |
 | [0004](0004-terraform-state-segmentation.md) | Terraform state segmented by layer | Accepted |
 | [0005](0005-public-subnets-no-nat.md) | Public subnets only, no NAT gateway, IPv4 | Accepted |
+| [0006](0006-single-az-node-placement.md) | Two AZs of subnets, all node capacity in one | Accepted |
