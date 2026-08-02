@@ -32,15 +32,19 @@ independent release cadence, and survivable mistakes possible at all.
 Layers are ordered by **change frequency** and **blast radius**, which correlate:
 the things that hurt most to lose are the things that change least.
 
-| # | Layer | Directory | State key | Changes | Owner |
-|---|---|---|---|---|---|
-| 0 | Bootstrap | `infra-aws/bootstrap` | `shared/bootstrap/terraform.tfstate` | Almost never | `@cto` |
-| 1 | Governance | `infra-aws/budgets` | `management/budgets/terraform.tfstate` | Rarely | `@cto` |
-| 2 | Identity | `infra-aws/iam` | `shared/iam/terraform.tfstate` | Rarely | `@security` |
-| 3 | Network | `infra-aws/network` | `shared/network/terraform.tfstate` | Rarely | `@infra` |
-| 4 | Registry | `infra-aws/ecr` | `shared/ecr/terraform.tfstate` | Occasionally | `@infra` |
-| 5 | Cluster | `infra-aws/eks` | `shared/eks/terraform.tfstate` | Occasionally | `@infra` |
-| 6 | AI services | `infra-aws/bedrock` | `shared/bedrock/terraform.tfstate` | Rarely | `@bedrock` |
+| # | Layer | Directory | State key | Changes | Owner | Status |
+|---|---|---|---|---|---|---|
+| 0 | Bootstrap | `infra-aws/bootstrap` | `shared/bootstrap/terraform.tfstate` | Almost never | `@cto` | **Applied** |
+| 1 | Governance | `infra-aws/budgets` | `management/budgets/terraform.tfstate` | Rarely | `@cto` | **Applied** |
+| 2 | Identity | `infra-aws/iam` | `shared/iam/terraform.tfstate` | Rarely | `@security` | Written, not applied |
+| 3 | Network | `infra-aws/network` | `shared/network/terraform.tfstate` | Rarely | `@infra` | Not written |
+| 4 | Registry | `infra-aws/ecr` | `shared/ecr/terraform.tfstate` | Occasionally | `@infra` | Not written |
+| 5 | Cluster | `infra-aws/eks` | `shared/eks/terraform.tfstate` | Occasionally | `@infra` | Not written |
+| 6 | AI services | `infra-aws/bedrock` | `shared/bedrock/terraform.tfstate` | Rarely | `@bedrock` | Not written |
+
+A layer with no state file has not been applied. Keep this column honest — it is
+the fastest way for someone joining mid-programme to see what actually exists
+versus what is planned.
 
 Layer 1 is the only one that runs in the **management account**
 (`909783398044`). Organizations, SCPs and budget actions exist nowhere else.
@@ -78,8 +82,15 @@ GitOps. Both sides are documented in the layer that owns them.
   `prod`.
 - `component` — matches the directory name exactly. No abbreviations.
 
-Bucket: `u25c-tfstate-808540602855`, versioned, KMS-encrypted, TLS-only, with
-`prevent_destroy` on the bucket itself.
+Bucket: `u25c-tfstate-808540602855`, in the **workload account**. Verified live:
+versioning `Enabled`, encryption `aws:kms` with the customer-managed key, public
+access blocked, and a bucket policy carrying `DenyInsecureTransport` plus
+`AllowManagementAccountState` for the cross-account case below. `prevent_destroy`
+is set on the bucket resource itself.
+
+Layer 1 runs in the management account but writes here, so there is one backend
+rather than two. That path is proven, not theoretical — `management/budgets/`
+was written across the account boundary.
 
 Locking is **native S3** (`use_lockfile = true`, Terraform ≥ 1.10). There is no
 DynamoDB lock table; do not add one.
