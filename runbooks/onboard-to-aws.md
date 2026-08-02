@@ -19,7 +19,7 @@ You will be sent two things: your **username** and a **one-time password**. You
 will not receive an email from AWS; the password comes to you directly, over
 GitHub or Slack.
 
-1. Open **https://d-90660f563d.awsapps.com/start**
+1. Open **https://ubuntu-25c.awsapps.com/start**
 2. Username: **your GitHub handle**, exactly as it appears in `program/roster.yaml`.
    Case matters. If yours is `Nikita-DS22`, type `Nikita-DS22`.
 3. Password: the one-time password you were sent. You will be asked to set your
@@ -44,7 +44,7 @@ management account. If you are CTO you see `u25c-PlatformAdmin`.
 
 ```bash
 aws configure sso
-# SSO start URL:  https://d-90660f563d.awsapps.com/start
+# SSO start URL:  https://ubuntu-25c.awsapps.com/start
 # SSO region:     us-east-1
 # registration scopes: sso:account:access
 ```
