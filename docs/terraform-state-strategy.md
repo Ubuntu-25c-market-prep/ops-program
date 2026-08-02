@@ -36,18 +36,28 @@ the things that hurt most to lose are the things that change least.
 |---|---|---|---|---|---|---|
 | 0 | Bootstrap | `infra-aws/bootstrap` | `shared/bootstrap/terraform.tfstate` | Almost never | `@cto` | **Applied** |
 | 1 | Governance | `infra-aws/budgets` | `management/budgets/terraform.tfstate` | Rarely | `@cto` | **Applied** |
-| 2 | Identity | `infra-aws/iam` | `shared/iam/terraform.tfstate` | Rarely | `@security` | Written, not applied |
-| 3 | Network | `infra-aws/network` | `shared/network/terraform.tfstate` | Rarely | `@infra` | Not written |
-| 4 | Registry | `infra-aws/ecr` | `shared/ecr/terraform.tfstate` | Occasionally | `@infra` | Not written |
-| 5 | Cluster | `infra-aws/eks` | `shared/eks/terraform.tfstate` | Occasionally | `@infra` | Not written |
-| 6 | AI services | `infra-aws/bedrock` | `shared/bedrock/terraform.tfstate` | Rarely | `@bedrock` | Not written |
+| 2 | Organisation | `infra-aws/organization` | `management/organization/terraform.tfstate` | Rarely | `@security` | **Applied** |
+| 3 | Identity Center | `infra-aws/identity` | `management/identity/terraform.tfstate` | Weekly | `@security` | **Applied** |
+| 4 | CI identity | `infra-aws/iam` | `shared/iam/terraform.tfstate` | Rarely | `@security` | **Applied** |
+| 5 | Network | `infra-aws/network` | `shared/network/terraform.tfstate` | Rarely | `@infra` | Not written |
+| 6 | Registry | `infra-aws/ecr` | `shared/ecr/terraform.tfstate` | Occasionally | `@infra` | Not written |
+| 7 | Cluster | `infra-aws/eks` | `shared/eks/terraform.tfstate` | Occasionally | `@infra` | Not written |
+| 8 | AI services | `infra-aws/bedrock` | `shared/bedrock/terraform.tfstate` | Rarely | `@bedrock` | Not written |
 
 A layer with no state file has not been applied. Keep this column honest — it is
 the fastest way for someone joining mid-programme to see what actually exists
 versus what is planned.
 
-Layer 1 is the only one that runs in the **management account**
-(`909783398044`). Organizations, SCPs and budget actions exist nowhere else.
+Layers 1-3 run in the **management account** (`909783398044`). Organizations,
+SCPs, budget actions and Identity Center exist nowhere else. Every other layer
+runs in the workload account. Their state still lives in the workload account's
+bucket, reached across the boundary via `state_reader_account_ids`.
+
+Layers 3 and 4 have an ordering constraint in the other direction: the engineer
+permission set in `identity` attaches a permissions boundary that `iam` creates
+in the workload account, so **`iam` applies before `identity`**. It is the only
+place in the stack where a lower-numbered layer depends on a higher one, and it
+exists because a boundary is resolved in the account the session runs in.
 Every other layer runs in the **workload account** (`808540602855`).
 
 ### Where Terraform stops

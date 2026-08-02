@@ -1,7 +1,7 @@
 # Naming and Working Conventions
 
 Binding for every repository in `Ubuntu-25c-market-prep`. Changes go through an ADR in
-`adr/`.
+`docs/adr/`.
 
 ## Repositories
 
