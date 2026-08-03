@@ -7,23 +7,28 @@ Binding for every repository in `Ubuntu-25c-market-prep`. Changes go through an 
 
 Format: `<layer>-<domain>`, lowercase kebab-case.
 
-Layers: `infra` · `platform` · `gitops` · `apps` · `ops`
+Layers: `infra` · `gitops` · `apps` · `ops`
 
 GitHub organisations are flat — there are no subgroups — so the layer prefix is what
 produces visual grouping in the repository list.
 
+One repository per **delivery boundary**, not per component — see
+[ADR 0010](docs/adr/0010-one-repository-per-delivery-boundary.md). A new repository
+needs a reason that changes how or when code reaches production: a separate build
+pipeline, controller, credential or blast radius. "It is a different component" is
+not one; that is what directories and CODEOWNERS are for.
+
 | Repo | Layer | Owns |
 |---|---|---|
-| `infra-aws` | infra | Terraform for AWS: Org, IdC, VPC, EKS, ECR, Bedrock |
-| `infra-modules` | infra | Reusable, tag-versioned Terraform modules |
-| `platform-addons` | platform | Cluster add-ons: core, scaling, utils, velero, rancher, istio |
-| `platform-observability` | platform | Monitoring, logging, tracing, finops |
-| `platform-security` | platform | Kyverno, Policy Reporter, ZeroTrust |
-| `gitops-flux` | gitops | Flux desired state — platform apps |
-| `gitops-argocd` | gitops | Argo CD / Workflows — business apps |
-| `apps-business` | apps | Business application source |
+| `infra-aws` | infra | Terraform for AWS: Org, IdC, VPC, EKS, ECR, Bedrock, plus `modules/` |
+| `gitops-flux` | gitops | Flux desired state and the platform config it delivers — add-ons, observability, security |
+| `gitops-argocd` | gitops | Argo CD / Workflows — business app delivery config |
+| `apps-business` | apps | Business application source and its image pipeline |
 | `ops-program` | ops | Epics, backlog manifest, ADRs, runbooks |
 | `.github` | ops | Org profile, shared workflows, templates |
+
+`platform-addons`, `platform-observability`, `platform-security` and `infra-modules`
+were archived by ADR 0010; the `platform` layer prefix retired with them.
 
 ## Teams
 
@@ -63,8 +68,10 @@ chore(ops): update CODEOWNERS
 
 ## Tags and releases
 
-SemVer, `vX.Y.Z`. Terraform modules in `infra-modules` are tagged per module:
-`<module>/vX.Y.Z` — for example `vpc/v1.2.0`.
+SemVer, `vX.Y.Z`.
+
+Terraform modules are **not** tagged. They live in `infra-aws/modules/`, are sourced
+by relative path, and version with the repository that calls them (ADR 0010).
 
 ## Issues
 
@@ -125,13 +132,17 @@ depend on them:
 State lives in `u25c-tfstate-<account-id>` with key `<env>/<component>/terraform.tfstate`
 and native S3 locking. One directory per environment — **no workspaces**.
 
-Module sources pin a tag, never a branch:
+Modules live in `infra-aws/modules/` and are sourced by relative path (ADR 0010):
 
 ```hcl
 module "vpc" {
-  source = "git::https://github.com/Ubuntu-25c-market-prep/infra-modules.git//vpc?ref=vpc/v1.2.0"
+  source = "../modules/vpc"
 }
 ```
+
+A module and its callers therefore change in one reviewed commit, and CI plans the
+change against its real caller before merge. `modules/**` is in the workflow `paths:`
+filters for exactly that reason — remove it and a module change merges unplanned.
 
 ## Kubernetes
 

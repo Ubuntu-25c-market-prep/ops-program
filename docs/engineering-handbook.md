@@ -17,9 +17,14 @@ Every repository path has exactly one owning workstream, expressed in
   your internals.
 
 Shared repositories are split by directory, not shared as a free-for-all:
-`platform-addons/istio/` belongs to `@istio`, `platform-addons/velero/` to
+`gitops-flux/addons/istio/` belongs to `@istio`, `gitops-flux/addons/velero/` to
 `@velero`. Six workstreams work in one repository without merge contention
 because none of them touch the same files.
+
+Since ADR 0010 this is how ownership works everywhere, not just in one repository.
+Repositories are drawn on delivery boundaries; **directories and `CODEOWNERS` are
+what separate workstreams.** A path entry is therefore a real permission grant —
+review it like one.
 
 If you need something in another workstream's path, open an issue against them.
 Do not edit it and request review — that inverts ownership and puts the reviewer
