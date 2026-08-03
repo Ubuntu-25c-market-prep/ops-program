@@ -39,7 +39,7 @@ epics:
       accounts exist and CI can assume a role without static credentials.
     tasks:
       - {title: "[security] Create AWS Organization and the account structure", repo: infra-aws, size: M}
-      - {title: "[security] Enable CloudTrail org trail, Config, GuardDuty, Security Hub", repo: infra-aws, size: M}
+      - {title: "[security] Enable the CloudTrail organisation trail", repo: infra-aws, size: M}
       - {title: "[security] Configure IAM Identity Center with permission sets per workstream", repo: infra-aws, size: L}
       - {title: "[security] Create the GitHub OIDC provider and per-repo deploy roles", repo: infra-aws, size: M}
       - {title: "[security] Author SCP guardrails: region lock, instance families, root user", repo: infra-aws, size: M}
