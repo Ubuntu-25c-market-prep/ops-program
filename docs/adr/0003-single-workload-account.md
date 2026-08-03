@@ -20,8 +20,10 @@ The budget-action freeze that enforces the cost ceiling would be inert there.
 management-only: Organizations, Identity Center, budgets and the freeze SCP.
 Staging and Prod remain dormant.
 
-`336449003124` is Aslan's personal homelab account and is **out of scope
-permanently** — it holds live homelab credentials and backups.
+A personal homelab account belonging to one of the CTOs is **out of scope
+permanently** — it holds live homelab credentials and backups. It is
+deliberately not identified here; this repository is public and the account has
+nothing to do with the programme.
 
 ## Alternatives considered
 
