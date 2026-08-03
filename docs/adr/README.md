@@ -36,3 +36,4 @@ Not for: routine configuration, reversible tweaks, anything a comment covers.
 | [0007](0007-ou-layout-and-scp-guardrails.md) | Two OUs, guardrails on the OUs and never on the root | Accepted |
 | [0008](0008-identity-center-four-tier-access.md) | Four permission sets, not fifteen | Accepted |
 | [0009](0009-audit-the-management-account-with-its-own-trail.md) | Audit the management account with its own trail, not an organisation trail | Proposed |
+| [0010](0010-one-repository-per-delivery-boundary.md) | One repository per delivery boundary, not per component | Proposed |

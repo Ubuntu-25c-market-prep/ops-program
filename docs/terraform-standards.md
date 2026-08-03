@@ -48,16 +48,26 @@ terraform {
 - **`.terraform.lock.hcl` is committed** in every root module. It pins provider
   hashes; without it "the same code" produces different plans on different
   machines.
-- Module sources pin a **tag**, never a branch:
+- Module sources are **relative paths** into `infra-aws/modules/` (ADR 0010):
 
 ```hcl
 module "vpc" {
-  source = "git::https://github.com/Ubuntu-25c-market-prep/infra-modules.git//vpc?ref=vpc/v1.2.0"
+  source = "../modules/vpc"
 }
 ```
 
-A `ref` pointing at `main` means your infrastructure changes when someone else
-merges. That is not a dependency, it is a surprise.
+Modules used to live in their own repository and pin a tag, on the reasoning that
+a `ref` pointing at `main` means your infrastructure changes when someone else
+merges. With one consumer that protection was never exercised, and the cost was
+that a module and its caller could not change in the same commit.
+
+The protection is now CI rather than a tag: `modules/**` is in the workflow
+`paths:` filters, so a module change plans every layer that calls it *before*
+merge instead of surprising the next person to bump a `ref`. Read the plan. A
+change that replaces a resource is still breaking even when the interface is
+identical.
+
+An external module — one this programme does not own — still pins a version.
 
 ---
 
