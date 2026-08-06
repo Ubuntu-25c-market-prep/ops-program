@@ -1,6 +1,10 @@
 # 0010. One repository per delivery boundary, not per component
 
 **Status:** Proposed
+**Amended by:** [0011](0011-carve-platform-security-back-out.md) — partially, for
+`platform-security` only. The rule below stands; `platform-security` was found to meet
+its "separate blast radius" test and was carved back out. `platform-addons`,
+`platform-observability` and `infra-modules` stay archived as decided here.
 **Date:** 2026-08-03
 **Deciders:** @cto, @pm, @infra, @flux
 

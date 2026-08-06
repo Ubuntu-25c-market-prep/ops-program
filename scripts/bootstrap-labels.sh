@@ -5,10 +5,13 @@ set -euo pipefail
 
 ORG="${ORG:-Ubuntu-25c-market-prep}"
 
-# Six repositories since ADR 0010. Archived repositories must not be listed -
-# the label API rejects writes to a read-only repo and the run fails.
+# Seven repositories: six from ADR 0010 plus platform-security, carved back out
+# by ADR 0011. Archived repositories must not be listed - the label API rejects
+# writes to a read-only repo and the run fails. platform-addons,
+# platform-observability and infra-modules are archived; keep them out.
 REPOS=(
   infra-aws
+  platform-security
   gitops-flux gitops-argocd apps-business
   ops-program .github
 )

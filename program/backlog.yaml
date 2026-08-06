@@ -143,12 +143,12 @@ epics:
       Admission control is what makes single-cluster tenancy safe. Tag enforcement here
       is also what makes FinOps showback possible later.
     tasks:
-      - {title: "[security] Install Kyverno in high availability", repo: gitops-flux, size: M}
-      - {title: "[security] Author pod security baseline policies in audit mode", repo: gitops-flux, size: L}
-      - {title: "[security] Enforce required workstream and owner labels on all workloads", repo: gitops-flux, size: M}
-      - {title: "[security] Add policies restricting cross-namespace IRSA usage", repo: gitops-flux, size: L}
-      - {title: "[security] Install Policy Reporter with a Grafana-visible backend", repo: gitops-flux, size: M}
-      - {title: "[security] Promote baseline policies from audit to enforce", repo: gitops-flux, size: M}
+      - {title: "[security] Install Kyverno in high availability", repo: platform-security, size: M}
+      - {title: "[security] Author pod security baseline policies in audit mode", repo: platform-security, size: L}
+      - {title: "[security] Enforce required workstream and owner labels on all workloads", repo: platform-security, size: M}
+      - {title: "[security] Add policies restricting cross-namespace IRSA usage", repo: platform-security, size: L}
+      - {title: "[security] Install Policy Reporter with a Grafana-visible backend", repo: platform-security, size: M}
+      - {title: "[security] Promote baseline policies from audit to enforce", repo: platform-security, size: M}
 
   - key: istio
     title: "[istio] Service mesh and Kiali"
@@ -180,6 +180,7 @@ epics:
       - {title: "[scaling] Install KEDA with its IRSA role", repo: gitops-flux, size: M}
       - {title: "[scaling] Define ScaledObject templates for the common triggers", repo: gitops-flux, size: M}
       - {title: "[scaling] Configure HPA defaults and resource recommendations", repo: gitops-flux, size: M}
+      - {title: "[scaling] Install Goldilocks for VPA-backed request recommendations", repo: gitops-flux, size: M}
       - {title: "[scaling] Load-test the scaling path end to end", repo: gitops-flux, size: L}
       - {title: "[scaling] Document the autoscaling golden path", repo: ops-program, size: S}
 
@@ -313,12 +314,12 @@ epics:
       Depends on Istio. In a single-cluster design this is what keeps a dev-namespace pod
       from reaching a prod service or assuming a prod IAM role.
     tasks:
-      - {title: "[zerotrust] Enable STRICT mTLS across platform namespaces", repo: gitops-flux, size: L}
-      - {title: "[zerotrust] Author default-deny AuthorizationPolicies per namespace", repo: gitops-flux, size: L}
-      - {title: "[zerotrust] Add default-deny NetworkPolicies as a second layer", repo: gitops-flux, size: M}
+      - {title: "[zerotrust] Enable STRICT mTLS across platform namespaces", repo: platform-security, size: L}
+      - {title: "[zerotrust] Author default-deny AuthorizationPolicies per namespace", repo: platform-security, size: L}
+      - {title: "[zerotrust] Add default-deny NetworkPolicies as a second layer", repo: platform-security, size: M}
       - {title: "[zerotrust] Condition every IRSA trust policy on namespace and service account", repo: infra-aws, size: L}
-      - {title: "[zerotrust] Verify workload identity with SPIFFE IDs end to end", repo: gitops-flux, size: M}
-      - {title: "[zerotrust] Run a cross-namespace escalation test and document findings", repo: gitops-flux, size: L}
+      - {title: "[zerotrust] Verify workload identity with SPIFFE IDs end to end", repo: platform-security, size: M}
+      - {title: "[zerotrust] Run a cross-namespace escalation test and document findings", repo: platform-security, size: L}
 
   - key: bedrock
     title: "[bedrock] AWS Bedrock integration"
