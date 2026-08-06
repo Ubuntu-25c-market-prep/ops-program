@@ -7,7 +7,7 @@ Binding for every repository in `Ubuntu-25c-market-prep`. Changes go through an 
 
 Format: `<layer>-<domain>`, lowercase kebab-case.
 
-Layers: `infra` · `gitops` · `apps` · `ops`
+Layers: `infra` · `platform` · `gitops` · `apps` · `ops`
 
 GitHub organisations are flat — there are no subgroups — so the layer prefix is what
 produces visual grouping in the repository list.
@@ -21,14 +21,20 @@ not one; that is what directories and CODEOWNERS are for.
 | Repo | Layer | Owns |
 |---|---|---|
 | `infra-aws` | infra | Terraform for AWS: Org, IdC, VPC, EKS, ECR, Bedrock, plus `modules/` |
-| `gitops-flux` | gitops | Flux desired state and the platform config it delivers — add-ons, observability, security |
+| `platform-security` | platform | Kyverno, Policy Reporter, ZeroTrust |
+| `gitops-flux` | gitops | Flux desired state and the platform config it delivers — add-ons, observability |
 | `gitops-argocd` | gitops | Argo CD / Workflows — business app delivery config |
 | `apps-business` | apps | Business application source and its image pipeline |
 | `ops-program` | ops | Epics, backlog manifest, ADRs, runbooks |
 | `.github` | ops | Org profile, shared workflows, templates |
 
-`platform-addons`, `platform-observability`, `platform-security` and `infra-modules`
-were archived by ADR 0010; the `platform` layer prefix retired with them.
+`platform-security` is the one component repository the delivery-boundary rule keeps —
+see [ADR 0011](docs/adr/0011-carve-platform-security-back-out.md). It is not an exception
+to the rule but an application of it: admission control decides what may run, so its
+review population is a **separate blast radius** rather than a separate component.
+
+`platform-addons`, `platform-observability` and `infra-modules` were archived by
+ADR 0010 and stay archived.
 
 ## Teams
 

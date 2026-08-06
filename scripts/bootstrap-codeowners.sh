@@ -20,15 +20,28 @@ codeowners_for() {
 *            ${O}/cto
 EOF
     ;;
+    platform-security) cat <<EOF
+# Policy and Zero Trust. Security owns admission control, ZeroTrust owns mesh identity.
+#
+# Carved back out of gitops-flux by ADR 0011: admission control decides what may
+# run, so its review population is a separate blast radius and does not sit one
+# mis-scoped path entry away from six other workstreams.
+/kyverno/    ${O}/security
+/policy-reporter/ ${O}/security
+/zerotrust/  ${O}/zerotrust
+*            ${O}/cto
+EOF
+    ;;
     gitops-flux) cat <<EOF
 # Everything Flux reconciles into the cluster.
 #
 # Delivery objects belong to @flux; component configuration belongs to the
-# workstream that runs the component. Six workstreams share this repository
+# workstream that runs the component. Five workstreams share this repository
 # without merge contention because none of them touch the same directories.
 #
-# Absorbed platform-addons, platform-observability and platform-security per
-# ADR 0010. Path ownership is carried over unchanged from those repositories.
+# Absorbed platform-addons and platform-observability per ADR 0010. Path
+# ownership is carried over unchanged from those repositories. Security policy
+# went back to platform-security per ADR 0011 and is not owned here.
 
 # Flux delivery objects - HelmReleases, Kustomizations, sources, bootstrap.
 /clusters/                     ${O}/flux
@@ -46,11 +59,6 @@ EOF
 /observability/logging/        ${O}/logging
 /observability/tracing/        ${O}/tracing
 /observability/finops/         ${O}/finops
-
-# Policy and Zero Trust.
-/security/kyverno/             ${O}/security
-/security/policy-reporter/     ${O}/security
-/security/zerotrust/           ${O}/zerotrust
 
 *                              ${O}/flux ${O}/cto
 EOF
@@ -80,7 +88,7 @@ EOF
   esac
 }
 
-for repo in infra-aws gitops-flux gitops-argocd apps-business \
+for repo in infra-aws platform-security gitops-flux gitops-argocd apps-business \
             ops-program .github; do
   body="$(codeowners_for "$repo" | base64 -w0)"
   sha="$(gh api "repos/${ORG}/${repo}/contents/.github/CODEOWNERS" --jq '.sha' 2>/dev/null || true)"
