@@ -16,7 +16,9 @@ New to the programme? Read in this order:
    variables, safety, secrets, review criteria.
 4. **[Terraform State Strategy](terraform-state-strategy.md)** — the layer model,
    state keys, how layers pass values, and the rules for adding one.
-5. **[ADRs](adr/)** — why things are the way they are.
+5. **[Secret Management](secret-management.md)** — IRSA first, sealed-secrets for
+   what is left, where the controller key lives, and how everything rotates.
+6. **[ADRs](adr/)** — why things are the way they are.
 
 ## Quick reference
 
@@ -57,6 +59,7 @@ ops-program/
 │   ├── engineering-handbook.md
 │   ├── terraform-standards.md
 │   ├── terraform-state-strategy.md
+│   ├── secret-management.md
 │   └── adr/                architecture decision records
 ├── program/
 │   ├── roster.yaml         person → GitHub account → workstreams
