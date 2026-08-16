@@ -72,6 +72,28 @@ Ownership of the Argo CD component directories in `gitops-flux` goes to
 /infrastructures/dev/25c-shared/argo-cd/      @Ubuntu-25c-market-prep/argocd
 ```
 
+**These two lines must sit *below* the file's `*` entry, and in the natural place
+they would not.** CODEOWNERS is last-matching-pattern-wins, and `gitops-flux` ends
+with
+
+```
+*     @Ubuntu-25c-market-prep/flux @Ubuntu-25c-market-prep/cto
+```
+
+so every per-component entry above it — `istio`, `scaling`, `utils`, and the
+`flux` delivery paths — is inert today, and `@flux` plus `@cto` own the whole
+tree. Added alongside the other component entries, the two lines above would
+produce a diff that reads correctly and changes nothing.
+
+This is demonstrable rather than theoretical, and not specific to `gitops-flux`.
+`infra-aws` has the same shape: `infra-aws#54` changes only `/ecr/`, whose
+CODEOWNERS entry names `@infra`, and GitHub auto-requested `@cto` alone.
+
+Reordering those files is deliberately **out of scope here** — it changes review
+rights for six workstreams that have not been consulted, and it should be its own
+pull request against each repository. But this ADR's mitigation depends on it, so
+it must not be assumed to already work.
+
 The repository a file sits in decides which controller applies it. CODEOWNERS decides
 who reviews it. Those are different questions and this ADR answers both deliberately.
 
@@ -127,11 +149,22 @@ merging two PRs that both claim `argocd-cm`.
   this is the real cost.** RBAC policy changes — adding a team, granting a role, fixing
   someone's access — are changes to `configs.rbac` in a `HelmRelease`. They inherit
   `gitops-flux` branch protection and the Flux reconcile interval, currently 20h, so an
-  access fix is not immediate without `flux reconcile`. The CODEOWNERS entries above
-  keep review with `@argocd` rather than `@flux`, which addresses who approves but not
-  where the file lives or how fast it lands. If RBAC churn becomes routine, the honest
+  access fix is not immediate without `flux reconcile`. The CODEOWNERS entries above are
+  intended to keep review with `@argocd` rather than `@flux` — but they only address who
+  approves, never where the file lives or how fast it lands, **and they do not work at
+  all unless that file is reordered first**. Treat the reordering as a prerequisite of
+  this ADR, not a tidy-up that can follow it. If RBAC churn becomes routine, the honest
   answer is a follow-up ADR moving to `argocd-rbac-cm` managed outside the chart — not
   a quiet second copy in `gitops-argocd`.
+
+- **A CODEOWNERS file that describes an ownership model it is not enforcing is worse
+  than not having one.** `gitops-flux`'s opens with a comment explaining that component
+  configuration belongs to the workstream that runs the component, and lists twelve path
+  entries doing exactly that. None of them are in force. Everyone reading that file
+  believes review is distributed; in practice two teams approve everything, and the
+  reviewer of a `kube-prometheus-stack` schema error is whoever the catch-all named —
+  which is one plausible reading of how `gitops-flux#93` merged. This ADR does not fix
+  it, but it should not be discovered a third time.
 
 - **Argo CD inherits `gitops-flux`'s blast radius, and it is currently on fire.**
   `gitops-flux#93`: the `infrastructure` Kustomization has been failing since
