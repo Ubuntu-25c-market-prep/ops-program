@@ -38,3 +38,4 @@ Not for: routine configuration, reversible tweaks, anything a comment covers.
 | [0009](0009-audit-the-management-account-with-its-own-trail.md) | Audit the management account with its own trail, not an organisation trail | Proposed |
 | [0010](0010-one-repository-per-delivery-boundary.md) | One repository per delivery boundary, not per component | Proposed · amended by 0011 |
 | [0011](0011-carve-platform-security-back-out.md) | Carve platform-security back out of gitops-flux | Proposed |
+| [0012](0012-opencost-over-kubecost.md) | OpenCost over Kubecost for Kubernetes cost visibility | Proposed |
