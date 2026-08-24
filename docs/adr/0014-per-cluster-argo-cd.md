@@ -30,7 +30,7 @@ CDs**, and **what varies per cluster**.
 
 ### 1. Each cluster runs its own Argo CD
 
-Installed by that cluster's Flux, exactly as ADR 0012 already describes, and
+Installed by that cluster's Flux, exactly as ADR 0013 already describes, and
 reconciling only the cluster it runs on. There is no hub, and no Argo CD ever
 holds credentials for a cluster other than its own.
 
