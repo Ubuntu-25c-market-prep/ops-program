@@ -126,10 +126,13 @@ biggest instance type will sit `Pending` with no obvious cause.
 `us-east-1a` can never schedule onto a pool node. Existing volumes in the wrong
 AZ have to be recreated, not moved.
 
-**Karpenter's controller and CoreDNS stay on the managed node group.** If
+**Karpenter's controller, CoreDNS and Flux stay on the managed node group.** If
 Karpenter ran only on Karpenter-managed nodes and consolidation removed the last
-one, nothing would exist to launch a replacement. The managed node group is a
-bootstrap floor, not redundancy.
+one, nothing would exist to launch a replacement. Flux is the sharper case: the
+NodePools that would host it are delivered by it, so a bad NodePool change could
+make the pool unschedulable and leave no way to push the fix through Git. The
+managed node group is a bootstrap floor, not redundancy - and at one node it is
+a single point of failure for all three at once.
 
 **Cost, stated honestly:** this is close to cost-neutral today. Four pools take
 the cluster from two nodes to three, and each new node pays the DaemonSet tax.

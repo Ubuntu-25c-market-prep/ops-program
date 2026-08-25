@@ -302,7 +302,7 @@ an outage, and for anything in the admission path it is an outage that blocks
 the cert-manager webhook, istiod. Move those when nobody else is deploying, and
 never two at once.
 
-### Order matters, and Flux goes last
+### Order matters
 
 Migrate one component at a time, verifying each:
 
@@ -312,13 +312,10 @@ Migrate one component at a time, verifying each:
    Watch the admission-path ones.
 3. **Observability** — Prometheus and Grafana onto the `observability` pool.
    Alertmanager only after its volume is recreated in `us-east-1b`.
-4. **Flux, last.** It is `gotk-components.yaml`, not a HelmRelease, so the change
-   is to the bootstrap manifests rather than an overlay patch — and Flux is the
-   thing that would reconcile a fix if a move went wrong. Break it first and you
-   have no way to repair anything else through Git.
+**Flux is not on this list, and should not be moved at all** — see below.
 
-`karpenter` and `coredns` are not on this list and should stay on the managed
-node group — see the last section.
+`karpenter` and `coredns` stay on the managed node group too; see the last
+section.
 
 ## If no pool fits
 
@@ -328,9 +325,47 @@ is a `@scaling` change and it must carry the same `topology.kubernetes.io/zone`
 requirement — ADR 0006 names a missing zone requirement as the most likely way
 that decision silently stops holding.
 
-## What is not covered here
+## What stays on the managed node group, permanently
 
-`karpenter-karpenter` and CoreDNS run on the managed node group on purpose. If
-Karpenter ran only on Karpenter-managed nodes and consolidation removed the last
-one, nothing would exist to launch its replacement. Do not "tidy" them onto a
-pool.
+Three things are deliberately not migrated. The managed node group is a
+**bootstrap floor**, not leftover capacity, and these are what it exists to
+carry.
+
+**`karpenter-karpenter`.** If Karpenter ran only on Karpenter-managed nodes and
+consolidation removed the last one, nothing would exist to launch its
+replacement.
+
+**`coredns`.** Cluster DNS should not depend on the thing that needs DNS to
+provision. Two replicas with only *preferred* anti-affinity and a
+`maxUnavailable: 1` PDB.
+
+**Flux.** The circular dependency is the sharpest of the three: **the NodePools
+that would host Flux are delivered by Flux.** Give the controllers a
+`u25c.io/pool` nodeSelector and a bad NodePool change can make the pool
+unschedulable — at which point Flux cannot run, and you cannot push the fix
+through Git. Repair becomes hand-editing a Deployment with `kubectl`, on a
+cluster whose entire delivery mechanism is down.
+
+This is not hypothetical. On 2026-08-24 the `infrastructure` Kustomization was
+wedged for a day by a CRD-ordering bug. Flux itself stayed healthy on the managed
+node group, which is the only reason forcing a reconcile worked the moment the
+fix merged. Had Flux been on a pool affected by the broken config, recovery would
+have been manual.
+
+Flux is stateless and would migrate cleanly — that is not the argument. The
+argument is that it must be able to run when the pools cannot.
+
+### The consequence for shrinking the managed node group
+
+Those three plus DaemonSets are roughly **1.1 vCPU / 1.4 GiB** of requests, which
+fits one `t3.medium` with room. But at `node_desired_size: 1` that node is a
+single point of failure for Karpenter, CoreDNS *and* Flux together — lose it and
+nothing provisions, nothing resolves, and nothing reconciles until the ASG
+replaces it.
+
+CoreDNS also drops to a single effective node: its anti-affinity is only
+`preferred`, so both replicas land on the one node rather than one going Pending.
+
+That is a defensible trade on a cost-constrained learning platform, but it should
+be a decision someone makes on purpose rather than a side effect of counting
+spare capacity.
