@@ -254,3 +254,100 @@ The reviewer's job is not to check formatting — CI does that. It is to answer:
 5. **What does this cost?** Anything adding ongoing spend states the monthly
    delta in the pull request. Nodes, NAT, endpoints, load balancers, storage and
    retention all count.
+
+---
+
+## 12. IRSA trust policies
+
+Every role a pod assumes is scoped to exactly one service account in exactly one
+namespace. No exceptions, no wildcards.
+
+```hcl
+data "aws_iam_policy_document" "trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [var.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${var.oidc_provider_url}:sub"
+      values   = ["system:serviceaccount:${var.namespace}:${var.service_account}"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${var.oidc_provider_url}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+```
+
+Both conditions are required.
+
+**`:sub`** names the service account. Omit it and the trust policy says only
+"any identity from this OIDC provider" — which is every pod in the cluster,
+including a pod in a namespace someone else owns. There is one cluster and one
+OIDC provider here (ADR 0002, ADR 0003), so a missing `:sub` is not a
+theoretical weakness. It is a role assumable from anywhere in the cluster.
+
+**`:aud`** pins the token audience to `sts.amazonaws.com`, so a projected
+service-account token minted for some other audience cannot be replayed against
+STS.
+
+**`StringEquals`, never `StringLike`.** A wildcard anywhere in a `:sub` value
+reopens exactly the hole the condition closes.
+`system:serviceaccount:prod-*:*` trusts every service account in every namespace
+beginning `prod-`. If a role genuinely needs to serve more than one service
+account, list them — `values` is a list.
+
+This does not apply to the GitHub Actions OIDC roles in `iam/`. Those federate a
+different provider with a different subject format, and the plan role uses
+`StringLike` deliberately so a new repository does not require a Terraform
+change. The apply role does not, and the reasoning is recorded there.
+
+### Naming
+
+Put the namespace in the role name where it is not already obvious:
+`u25c-dev-karpenter-controller` for the `karpenter` namespace reads correctly.
+`u25c-dev-ebs-csi` for a service account in `kube-system` does not, and the
+Kyverno guardrail in `platform-security` (`restrict-irsa-cross-namespace`) flags
+it as non-compliant even though the trust policy is correct. That policy is in
+Audit mode; the mismatch needs resolving before it moves to Enforce.
+
+### Reviewing
+
+For any new role a pod will assume, check three things in the trust policy
+before approving:
+
+1. A `:sub` condition exists, and it names a specific namespace and service
+   account.
+2. An `:aud` condition exists and equals `sts.amazonaws.com`.
+3. Both use `StringEquals`.
+
+The failure mode is silent. A role missing `:sub` works exactly as intended for
+the workload it was written for, and goes on working while being assumable by
+anything else in the cluster. Nothing surfaces at plan time, at apply time, or
+in the application logs. It is only visible by reading the trust policy, which is
+why it is on this list rather than left to a linter.
+
+### Audit, 18 August 2026
+
+Every IRSA trust policy in `infra-aws` at the time of writing:
+
+| Role | Namespace | `:sub` | `:aud` | Test |
+|---|---|---|---|---|
+| `modules/karpenter` controller | `karpenter` | yes | yes | `StringEquals` |
+| `modules/cert-manager` controller | `cert-manager` | yes | yes | `StringEquals` |
+| `modules/eks` EBS CSI | `kube-system` | yes | yes | `StringEquals` |
+| `thanos` | monitoring | yes | yes | `StringEquals` |
+
+All four pass. Two of them — cert-manager and thanos — were written days apart by
+different people with none of the above written down, and both got it right by
+copying the module next door. That is the convention propagating by example, and
+it works until someone writes a role in a layer with no neighbour to copy.
