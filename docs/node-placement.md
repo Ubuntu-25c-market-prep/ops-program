@@ -140,14 +140,49 @@ next — the failure modes below are all quiet ones.
 
 ### 1. Check the image has an arm64 variant
 
-Skip only if you are targeting `apps` or `prod`, which are amd64-only.
+Only matters for `platform`, `observability` and `burst`, which are
+mixed-architecture. `apps` and `prod` are amd64-only today — see the note at the
+end of this section.
+
+**Business app images live in ECR** (`25c-project/<app>`), which is private, so
+`docker manifest inspect` fails with a 401 unless you have run
+`aws ecr get-login-password | docker login` first. Ask ECR directly instead:
 
 ```bash
-docker manifest inspect <image> | grep -c 'linux/arm64'
+aws ecr batch-get-image \
+  --repository-name 25c-project/<app> \
+  --image-ids imageTag=<tag> \
+  --accepted-media-types "application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json" \
+  --query 'images[0].imageManifest' --output text \
+  | jq -r '.manifests[]? | .platform | "\(.os)/\(.architecture)"'
 ```
 
-If it returns 0, either pin `kubernetes.io/arch: amd64` alongside your pool
-selector, or you will get `exec format error` on some nodes and not others.
+Expect one line per architecture:
+
+```
+linux/amd64
+linux/arm64
+```
+
+**No output at all** means the tag is a single-architecture image rather than an
+index — `aws ecr describe-images --image-ids imageTag=<tag> --query
+'imageDetails[].imageManifestMediaType'` will show
+`...image.manifest.v1+json` instead of `...image.index.v1+json`. For public
+images, `docker manifest inspect <image>` still works.
+
+If the image is amd64-only, either pin `kubernetes.io/arch: amd64` alongside
+your pool selector, or you will get `exec format error` on some nodes and not
+others.
+
+> **`apps` and `prod` are amd64-only on an assumption that no longer holds.**
+> Both pools were built expecting student-built, amd64-only images. Checked
+> 2026-08-25, `25c-project/storefront:0.1.0` publishes **both** `linux/amd64`
+> and `linux/arm64`, and the ECR layer's own config says images are built
+> multi-arch and promoted by tag rather than rebuilt. Adding `arm64` to those
+> two pools would take the Graviton saving. Not changed here because it affects
+> workloads `@argocd` owns — raise it with `@scaling` if you want it.
+
+
 
 ### 2. Check it fits
 
