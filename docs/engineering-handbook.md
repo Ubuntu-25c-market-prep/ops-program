@@ -119,12 +119,17 @@ written down before they are built. The published set today:
 |---|---|
 | `security` | Account structure, IAM roles, policy exemption process |
 | `infra` | VPC and CIDR allocation, cluster endpoint, ECR registries |
+| `scaling` | Node placement contract, spot posture, autoscaling templates |
 | `flux` | Add-on onboarding path, GitOps directory contract |
 | `argocd` | Application delivery path, promotion between namespaces |
 | `istio` | Gateway and VirtualService conventions, mTLS posture |
 | `monitoring` | Metric naming, alert routing, SLO template |
 | `tracing` | Instrumentation contract |
 | `utils` | Certificate issuance, DNS records, secret sealing |
+
+Published interface documentation lives in [`docs/`](.) — for example
+[node-placement.md](node-placement.md), the `@scaling` contract for putting a
+workload on a node.
 
 Changing an interface is a pull request against the interface documentation
 **first**, reviewed by every consuming workstream, then the implementation. A
