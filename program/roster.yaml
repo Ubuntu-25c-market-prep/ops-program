@@ -20,7 +20,7 @@ workstream_members:
   bedrock:    [aslantishbek, tatinatech, sergiidan]
 
 roles:
-  cto: [aslantishbek, sevgiabaysal]
+  cto: [aslantishbek, sevgiabaysal, sergiidan]
   pm:  [ElenaPinar, dianadi11]
 
 people:
@@ -30,7 +30,7 @@ people:
   - {name: "Diana",    github: dianadi11,             roles: [pm],  workstreams: [infra, flux, tracing]}
   - {name: "Andrii P", github: katoteshiku1989,       roles: [],    workstreams: [security, monitoring, logging]}
   - {name: "Roman",    github: romanhumeniuk312,      roles: [],    workstreams: [security, monitoring, logging]}
-  - {name: "Sergii",   github: sergiidan,             roles: [],    workstreams: [scaling, zerotrust, bedrock]}
+  - {name: "Sergii",   github: sergiidan,             roles: [cto], workstreams: [scaling, zerotrust, bedrock]}
   - {name: "Hanna",    github: bloomingirl,           roles: [],    workstreams: [scaling, argocd, velero]}
   - {name: "Dmytro",   github: Drdmytrush90,          roles: [],    workstreams: [scaling, argocd, utils]}
   - {name: "Zarina",   github: ZarinaSagynalieva,     roles: [],    workstreams: [flux, finops, zerotrust]}
