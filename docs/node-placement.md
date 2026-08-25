@@ -248,6 +248,78 @@ group — the prefix-delegation fix reached the managed group only
 pods than its CPU and memory would suggest, so a bulk migration buys more nodes
 than you would expect. One workload at a time is the safe pace regardless.
 
+## Migrating a platform component
+
+The six steps above still apply. Platform components add four problems that
+business apps do not have, and the ordering below exists because of them.
+
+### The chart may not accept a nodeSelector
+
+Setting `nodeSelector` or `tolerations` under `values:` when the chart exposes
+no such value is **accepted by Helm and silently ignored** — Git then claims a
+placement that never happened. Check the chart's `values.yaml` first.
+
+When the chart will not take it, patch the rendered output with a Flux
+`postRenderer`. `infrastructures/dev/25c-shared/rancher/patch.yaml` is the
+worked example, and it documents both mechanical traps: use `add` on
+`/spec/template/spec/nodeSelector` because the path does not exist yet, and
+`/spec/template/spec/tolerations/-` to **append** rather than replace a list the
+chart already populated.
+
+Rancher runs on the `platform` pool today and is the proof the contract works
+end to end.
+
+### A volume in the wrong AZ cannot move at all
+
+Every pool is pinned to `us-east-1b`. A PersistentVolume in `us-east-1a` pins
+its pod to a node that no pool will ever provide, and the pod sits `Pending`
+with a volume-node-affinity conflict.
+
+Checked 2026-08-25:
+
+| PV | AZ | Can move to a pool? |
+|---|---|---|
+| `monitoring/prometheus-…` 10Gi | `us-east-1b` | yes |
+| `monitoring/…-grafana` 2Gi | `us-east-1b` | yes |
+| `teleport/teleport` 10Gi | `us-east-1b` | yes |
+| `monitoring/alertmanager-…` 2Gi | **`us-east-1a`** | **no — recreate it first** |
+
+Re-check before you move anything stateful:
+
+```bash
+kubectl get pv -o custom-columns='CLAIM:.spec.claimRef.name,AZ:.spec.nodeAffinity.required.nodeSelectorTerms[0].matchExpressions[0].values'
+```
+
+Moving alertmanager means deleting and recreating its volume in `us-east-1b`,
+which loses silence state — do it deliberately, not as a side effect of a
+placement change.
+
+### Most of these are single-replica, and some are on the admission path
+
+Moving a component means restarting it. For a single-replica Deployment that is
+an outage, and for anything in the admission path it is an outage that blocks
+*other* pods from being created while it lasts — Kyverno's admission controller,
+the cert-manager webhook, istiod. Move those when nobody else is deploying, and
+never two at once.
+
+### Order matters, and Flux goes last
+
+Migrate one component at a time, verifying each:
+
+1. **`external-dns`** — the canary. Single-replica, stateless, and a failure is
+   visible immediately in DNS without taking anything else down.
+2. **`cert-manager`, `teleport`, KEDA, the Istio control plane** — one at a time.
+   Watch the admission-path ones.
+3. **Observability** — Prometheus and Grafana onto the `observability` pool.
+   Alertmanager only after its volume is recreated in `us-east-1b`.
+4. **Flux, last.** It is `gotk-components.yaml`, not a HelmRelease, so the change
+   is to the bootstrap manifests rather than an overlay patch — and Flux is the
+   thing that would reconcile a fix if a move went wrong. Break it first and you
+   have no way to repair anything else through Git.
+
+`karpenter` and `coredns` are not on this list and should stay on the managed
+node group — see the last section.
+
 ## If no pool fits
 
 Open an issue in `gitops-flux` labelled `ws:scaling`, describing the failure
