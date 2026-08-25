@@ -18,7 +18,10 @@ New to the programme? Read in this order:
    state keys, how layers pass values, and the rules for adding one.
 5. **[Secret Management](secret-management.md)** — IRSA first, sealed-secrets for
    what is left, where the controller key lives, and how everything rotates.
-6. **[ADRs](adr/)** — why things are the way they are.
+6. **[Node Placement](node-placement.md)** — the `@scaling` contract for
+   putting a workload on a node: the five pools, the selector and toleration,
+   and the five constraints that bite.
+7. **[ADRs](adr/)** — why things are the way they are.
 
 ## Quick reference
 
@@ -30,6 +33,7 @@ New to the programme? Read in this order:
 | Where does state for a new component go? | `shared/<component>/terraform.tfstate` — and add it to the layer table |
 | How do I get a value from another layer? | Read its SSM parameter under `/u25c/<scope>/<component>/` |
 | Can I commit this? | Not if it is a `.tfvars`, state, kubeconfig, key material, or a bare account id |
+| Which node will my workload run on? | [node-placement.md](node-placement.md) — `apps` unless you ask for another |
 | Who approves my pull request? | The workstream that owns the path, per CODEOWNERS |
 | This adds cost — what do I do? | State the monthly delta in the pull request |
 | I disagree with a standard | Write an ADR. That is the mechanism, and it is a legitimate one. |
@@ -57,6 +61,7 @@ ops-program/
 ├── CONVENTIONS.md          naming, binding across all repos
 ├── docs/
 │   ├── engineering-handbook.md
+│   ├── node-placement.md      node pools, the placement contract
 │   ├── terraform-standards.md
 │   ├── terraform-state-strategy.md
 │   ├── secret-management.md

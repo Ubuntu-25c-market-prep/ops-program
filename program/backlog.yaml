@@ -237,7 +237,7 @@ epics:
       - {title: "[tracing] Correlate traces with logs and metrics in Grafana", repo: gitops-flux, size: M}
 
   - key: finops
-    title: "[finops] Kubecost visibility and showback"
+    title: "[finops] OpenCost visibility and showback"
     workstream: finops
     layer: platform
     wave: 5
@@ -245,8 +245,10 @@ epics:
     body: |
       Depends on the tagging standard from aws-foundation and Kyverno label enforcement.
       Owns the monthly cost review against the target of roughly $2,400/mo.
+      Tool choice is OpenCost, not Kubecost - see docs/adr/0012. OpenCost cannot
+      backfill, so it is installed early rather than after the platform is complete.
     tasks:
-      - {title: "[finops] Install Kubecost with the AWS cost allocation integration", repo: gitops-flux, size: M}
+      - {title: "[finops] Install OpenCost against the existing kube-prometheus-stack", repo: gitops-flux, size: M}
       - {title: "[finops] Build per-namespace and per-workstream showback dashboards", repo: gitops-flux, size: M}
       - {title: "[finops] Configure AWS Budgets and cost anomaly detection", repo: infra-aws, size: M}
       - {title: "[finops] Audit Graviton and Spot coverage against the target mix", repo: gitops-flux, size: M}
