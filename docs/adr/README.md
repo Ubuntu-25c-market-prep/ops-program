@@ -39,3 +39,4 @@ Not for: routine configuration, reversible tweaks, anything a comment covers.
 | [0010](0010-one-repository-per-delivery-boundary.md) | One repository per delivery boundary, not per component | Proposed · amended by 0011 |
 | [0011](0011-carve-platform-security-back-out.md) | Carve platform-security back out of gitops-flux | Proposed |
 | [0012](0012-opencost-over-kubecost.md) | OpenCost over Kubecost for Kubernetes cost visibility | Proposed |
+| [0013](0013-node-capacity-from-karpenter-pools.md) | Node capacity from Karpenter pools split by failure tolerance | Proposed |
