@@ -17,7 +17,7 @@ New to the programme? Read in this order:
 4. **[Terraform State Strategy](terraform-state-strategy.md)** — the layer model,
    state keys, how layers pass values, and the rules for adding one.
 5. **[Node Placement](node-placement.md)** — the `@scaling` contract for
-   putting a workload on a node: the four pools, the selector and toleration,
+   putting a workload on a node: the five pools, the selector and toleration,
    and the five constraints that bite.
 6. **[ADRs](adr/)** — why things are the way they are.
 

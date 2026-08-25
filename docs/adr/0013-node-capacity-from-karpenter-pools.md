@@ -32,12 +32,17 @@ running.
 
 - **Karpenter provisions node capacity.** The managed node group shrinks to a
   bootstrap floor running Karpenter's own controller and CoreDNS.
-- **Four NodePools, split by failure tolerance rather than by team:**
-  `platform`, `observability`, `apps`, `burst`.
-- **Spot-first everywhere**, with on-demand fallback on all pools except `burst`,
-  which is spot-only.
-- **Three pools are tainted; `apps` is untainted** and is the default landing
+- **Five NodePools, split by failure tolerance rather than by team:**
+  `platform`, `observability`, `apps`, `burst`, `prod`.
+- **Spot-first everywhere except `prod`**, which is on-demand only; `burst` is
+  spot-only with no on-demand fallback.
+- **Four pools are tainted; `apps` is untainted** and is the default landing
   zone, so a workload that specifies nothing still schedules.
+- **`prod` additionally excludes burstable instance families.** Karpenter buys
+  the cheapest type that fits, so leaving t3/t3a available would mean it chose
+  burstable every time; a burstable node that exhausts its CPU credits under
+  sustained load throttles to 20% of a vCPU, and the symptom is latency rather
+  than an error.
 - **Placement is a published interface**, not per-team convention: the
   `u25c.io/pool` label and its matching toleration, documented in
   [node-placement.md](../node-placement.md) and owned by `@scaling`.
@@ -46,6 +51,13 @@ Per ADR 0006 every pool carries a `topology.kubernetes.io/zone` requirement
 pinning it to `us-east-1b`.
 
 ## Alternatives considered
+
+**A capacity-type selector on the apps pool instead of a separate `prod` pool** —
+leave app-prod on the shared apps pool and have each workload set
+`karpenter.sh/capacity-type: on-demand`. Rejected because it is a per-workload
+opt-in that every team has to remember, and forgetting it is silent: the pod
+simply runs on spot. A tainted pool fails loudly instead — a workload that gets
+the toleration wrong stays `Pending` where someone will see it.
 
 **One pool for everything** — the simplest thing that works, and tempting at this
 size. Rejected because a single consolidation policy cannot serve both ends of
@@ -70,13 +82,27 @@ cannot scale to zero, which forecloses the burst case entirely.
 
 ## Consequences
 
+**A NodePool cannot select by namespace.** This is the sharpest edge of the
+design and it catches people: running in `app-prod` does not route a workload to
+the `prod` pool. Without an explicit nodeSelector and toleration, an app-prod
+Deployment lands on the untainted `apps` pool like dev and stage, and can be
+scheduled onto spot. The platform provides capacity; routing to it is always a
+workload-side change, and for business apps that change lives in the Argo CD
+repository rather than in gitops-flux.
+
+**Workloads without a priorityClass are evictable by anything that has one.**
+Observed 2026-08-24: a `system-node-critical` DaemonSet rolled out across nodes
+whose memory was fully reserved and preempted four priority-0 pods, which then
+had nowhere to schedule and forced an unplanned node purchase. Pool membership
+does not protect against this - a priorityClass does.
+
 **Every workstream now has to place its workloads.** Landing on a tainted pool
 requires both a `nodeSelector` and a matching toleration. The untainted `apps`
 pool keeps the default safe, so nothing breaks by omission — but nothing lands on
 `platform` or `observability` by accident either. The pools stay inert until
 workloads opt in.
 
-**Three of four pools are mixed arm64/amd64.** Any image without a `linux/arm64`
+**Three of five pools are mixed arm64/amd64** (`apps` and `prod` are amd64-only).. Any image without a `linux/arm64`
 variant must set an explicit `kubernetes.io/arch` requirement or it will fail to
 start on a Graviton node. This is the most likely first failure for a team
 shipping a single-architecture image, and it will surface as `CrashLoopBackOff`
