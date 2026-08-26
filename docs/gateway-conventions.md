@@ -73,14 +73,9 @@ see §4 for what's actually issuing that cert today. If per-environment
 hostnames are ever needed, that's a `@istio` decision requiring a wider
 cert first, not something to route around per-app.
 
-**`*.nip.io` is gone, not just unused.** Earlier revisions of this doc and
-the `Gateway` itself listed `*.nip.io` alongside the real domain, as a
-fallback for hitting the NLB directly without DNS. It's been dropped from
-`Gateway.spec.servers[].hosts` (`gitops-flux#146`) - Let's Encrypt won't
-sign a name nobody here owns, so the production certificate never covered
-it, and nothing was actually depending on it. For local testing without a
-real hostname, use curl's `--resolve` against the NLB's address instead;
-do not re-add a `nip.io` host to get around this.
+For local testing before a hostname's DNS record exists, use curl's
+`--resolve` against the NLB's address rather than adding a workaround host
+to the `Gateway`.
 
 Never route two apps through the same hostname distinguished only by path unless the app
 explicitly is a path-based multi-service frontend — one hostname, one owning team, is what
