@@ -64,13 +64,18 @@ Kyverno enforces the boundary at admission, this document is what the boundary *
 
 **Checked 2026-08-26: the hostname rule above replaces an earlier two-label form
 (`<app-name>.<env>.25c-team1.art`) that was never actually usable.** The
-`Gateway`'s TLS certificate SANs are `*.25c-team1.art` and `*.nip.io` — one
-wildcard label. A two-label host fails the TLS handshake before routing ever
-runs; it's not a style preference, the cert can't serve it. Every real hostname
-on this cluster already follows the single-label form (`rancher.25c-team1.art`,
-`storefront.25c-team1.art`) - see §4 for what's actually issuing that cert
-today. If per-environment hostnames are ever needed, that's a `@istio` decision
-requiring a wider cert first, not something to route around per-app.
+`Gateway`'s TLS certificate SANs are `*.25c-team1.art` and the apex
+`25c-team1.art` — one wildcard label. A two-label host fails the TLS
+handshake before routing ever runs; it's not a style preference, the cert
+can't serve it. Every real hostname on this cluster already follows the
+single-label form (`rancher.25c-team1.art`, `storefront.25c-team1.art`) -
+see §4 for what's actually issuing that cert today. If per-environment
+hostnames are ever needed, that's a `@istio` decision requiring a wider
+cert first, not something to route around per-app.
+
+For local testing before a hostname's DNS record exists, use curl's
+`--resolve` against the NLB's address rather than adding a workaround host
+to the `Gateway`.
 
 Never route two apps through the same hostname distinguished only by path unless the app
 explicitly is a path-based multi-service frontend — one hostname, one owning team, is what
@@ -82,17 +87,33 @@ keeps an incident page unambiguous about who to call.
 
 Every `Gateway` listener terminates TLS. No plaintext HTTP listener ships past `dev`.
 
-**Checked 2026-08-26: today's certificate is not from cert-manager.** The live
-`Gateway`'s `credentialName` points at a self-signed cert, manually generated
-and sealed via `kubeseal` (`SANs *.25c-team1.art, *.nip.io, localhost`, valid
-to 2036) - not issued or rotated by any `ClusterIssuer`. A real
-cert-manager-issued wildcard `Certificate` (`letsencrypt-staging`, DNS-01 via
-Route 53) exists in the cluster but is not yet live - its ACME challenge has
-been blocked (IRSA credentials never reached the `cert-manager` pod after its
-`ServiceAccount` annotation was added; the pod needed a restart it hadn't had
-yet at last check). Until that lands, app teams still request a hostname from
-`@istio` the same way, but the cert behind it is the manual one - do not
-assume Let's Encrypt trust chains or per-environment wildcards exist yet.
+**Updated 2026-08-26: this is now live, not aspirational.** The `Gateway`'s
+`credentialName` points at `wildcard-25c-team1-art-tls`, a cert-manager
+`Certificate` (`platform-istio/wildcard-25c-team1-art`) issued by the
+`letsencrypt-prod` `ClusterIssuer` via Route 53 DNS-01
+(`gitops-flux#146`). Verified end to end, not just `Ready: True` on the
+object:
+
+```
+$ curl -v --resolve rancher.25c-team1.art:443:<NLB IP> https://rancher.25c-team1.art/
+*  issuer: C=US; O=Let's Encrypt; CN=YE2
+*  SSL certificate verify ok.
+```
+
+No `(STAGING)` in the issuer, no manual `kubeseal` step, no browser warning.
+The two things that used to sit behind this cert are gone: the self-signed
+`SealedSecret` (`istio-gateway/sealed-tls-cert.yaml`) and Rancher's
+`privateCA: true` + its own CA-bundle `SealedSecret`
+(`rancher/tls-ca-sealedsecret.yaml`), which would have broken every Rancher
+agent the moment the gateway stopped serving the cert they were pinned to -
+both were removed in the same change that cut the gateway over, not as a
+followup.
+
+App teams still request a hostname from `@istio` the same way (§2); the cert
+behind it is now a real, auto-renewing one. `letsencrypt-prod` has a real
+rate limit (5 duplicate certificates per registered domain per week, no
+appeal) - that's `@istio`'s constraint to manage when re-issuing, not
+something an app team's hostname request needs to account for.
 
 ---
 
