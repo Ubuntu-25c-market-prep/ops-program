@@ -85,9 +85,13 @@ Then one of two paths:
 
 ## 6. Limits and prohibitions
 
-- **Line size cap: 32 KiB.** The collector truncates longer lines and marks
-  them `truncated: true`. Protects the shared cluster from one looping
-  workload flooding the index.
+- **Line size cap: 32 KiB — over-long lines are dropped, not truncated.**
+  Fluent Bit's `tail` input reads a line into a buffer of at most
+  `Buffer_Max_Size`; with `Skip_Long_Lines On` anything larger is skipped
+  whole and a warning is written to the collector's own log. There is no
+  truncate-and-forward mode, so a 40 KiB line does not arrive in part — it
+  does not arrive at all. Keep log lines small; put bulk payloads somewhere
+  that is not the log stream.
 - **No secrets in log lines** — no passwords, tokens, keys, full card numbers.
   Logs are retained for weeks and readable by every workstream; a secret in a
   log is a secret published. No tooling reliably detects this — you are the
