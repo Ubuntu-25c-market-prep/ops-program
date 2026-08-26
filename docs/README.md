@@ -23,7 +23,9 @@ New to the programme? Read in this order:
 7. **[Node Placement](node-placement.md)** — the `@scaling` contract for
    putting a workload on a node: the five pools, the selector and toleration,
    and the five constraints that bite.
-8. **[ADRs](adr/)** — why things are the way they are.
+8. **[Gateway API and VirtualService Conventions](gateway-conventions.md)** — how app teams
+   route traffic through the mesh: ownership boundary, naming, TLS.
+9. **[ADRs](adr/)** — why things are the way they are.
 
 ## Quick reference
 
@@ -68,6 +70,7 @@ ops-program/
 │   ├── terraform-state-strategy.md
 │   ├── log-schema.md
 │   ├── secret-management.md
+│   ├── gateway-conventions.md
 │   └── adr/                architecture decision records
 ├── program/
 │   ├── roster.yaml         person → GitHub account → workstreams
