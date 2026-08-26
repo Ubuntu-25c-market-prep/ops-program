@@ -19,6 +19,13 @@ Both `Gateway API` (`Gateway`, `HTTPRoute`) and Istio's classic API (`Gateway`,
 | Gateway API (`HTTPRoute`) | Default. Portable, vendor-neutral, where the ecosystem is moving. |
 | `VirtualService` | Only for Istio-specific traffic management `HTTPRoute` cannot express yet — fault injection, mirroring, and outlier-detection-driven retries. |
 
+**Checked 2026-08-26: Gateway API's CRDs are not installed on `u25c-shared`** -
+`kubectl get gateway.gateway.networking.k8s.io` returns "the server doesn't
+have a resource type", not an empty list. Every route on this cluster today is
+a `VirtualService`, not because it needed Istio-specific features, but because
+that's what actually exists. Use `VirtualService` until `@istio` installs the
+Gateway API CRDs - raise it with them if `HTTPRoute` is what you need.
+
 Do not use both for the same route. A service's traffic policy has exactly one controlling
 object, same as the single-controller-per-resource rule GitOps already runs on — two objects
 routing the same host is two controllers fighting, not redundancy.
@@ -51,9 +58,19 @@ Kyverno enforces the boundary at admission, this document is what the boundary *
 | Thing | Rule | Example |
 |---|---|---|
 | `HTTPRoute` / `VirtualService` | `<app-name>` — matches the Deployment/Service it routes to | `storefront` |
-| `Gateway` | `<env>-ingress` or `<env>-egress` | `dev-ingress` |
-| Hostname | `<app-name>.<env>.25c-team1.art` | `storefront.dev.25c-team1.art` |
+| `Gateway` | One shared listener, not per-env (§5) — `@istio` owns the name | `ingressgateway` |
+| Hostname | `<app-name>.25c-team1.art` — single label, not `<app-name>.<env>.25c-team1.art` | `storefront.25c-team1.art` |
 | Helm release (if the route ships inside a chart) | Matches the namespace component convention in `CONVENTIONS.md` | — |
+
+**Checked 2026-08-26: the hostname rule above replaces an earlier two-label form
+(`<app-name>.<env>.25c-team1.art`) that was never actually usable.** The
+`Gateway`'s TLS certificate SANs are `*.25c-team1.art` and `*.nip.io` — one
+wildcard label. A two-label host fails the TLS handshake before routing ever
+runs; it's not a style preference, the cert can't serve it. Every real hostname
+on this cluster already follows the single-label form (`rancher.25c-team1.art`,
+`storefront.25c-team1.art`) - see §4 for what's actually issuing that cert
+today. If per-environment hostnames are ever needed, that's a `@istio` decision
+requiring a wider cert first, not something to route around per-app.
 
 Never route two apps through the same hostname distinguished only by path unless the app
 explicitly is a path-based multi-service frontend — one hostname, one owning team, is what
@@ -65,11 +82,17 @@ keeps an incident page unambiguous about who to call.
 
 Every `Gateway` listener terminates TLS. No plaintext HTTP listener ships past `dev`.
 
-Certificates come from cert-manager, issuer `platform-issuer` (Route 53 DNS-01, wildcard per
-environment). App teams do not create `Certificate` objects directly — request the hostname
-via the same issue against `gitops-flux` used for the `Gateway` listener, and `@istio`
-provisions both together. A `Gateway` listener and its certificate are provisioned as one
-unit; requesting them separately is how a listener ends up live with no cert behind it.
+**Checked 2026-08-26: today's certificate is not from cert-manager.** The live
+`Gateway`'s `credentialName` points at a self-signed cert, manually generated
+and sealed via `kubeseal` (`SANs *.25c-team1.art, *.nip.io, localhost`, valid
+to 2036) - not issued or rotated by any `ClusterIssuer`. A real
+cert-manager-issued wildcard `Certificate` (`letsencrypt-staging`, DNS-01 via
+Route 53) exists in the cluster but is not yet live - its ACME challenge has
+been blocked (IRSA credentials never reached the `cert-manager` pod after its
+`ServiceAccount` annotation was added; the pod needed a restart it hadn't had
+yet at last check). Until that lands, app teams still request a hostname from
+`@istio` the same way, but the cert behind it is the manual one - do not
+assume Let's Encrypt trust chains or per-environment wildcards exist yet.
 
 ---
 
