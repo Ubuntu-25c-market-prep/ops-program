@@ -77,6 +77,10 @@ For local testing before a hostname's DNS record exists, use curl's
 `--resolve` against the NLB's address rather than adding a workaround host
 to the `Gateway`.
 
+How the record itself gets created — and why a hostname in the `Gateway`'s
+`hosts` is not the same thing as a hostname that resolves — is
+[dns-records.md](dns-records.md).
+
 Never route two apps through the same hostname distinguished only by path unless the app
 explicitly is a path-based multi-service frontend — one hostname, one owning team, is what
 keeps an incident page unambiguous about who to call.
