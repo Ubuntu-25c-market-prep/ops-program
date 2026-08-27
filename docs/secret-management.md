@@ -109,8 +109,8 @@ ever holds anything that would end the business.
 | Refresh | Monthly, and after any controller key renewal |
 
 The procedure itself — the exact commands to back up and to restore — is
-`ops-program#19`, in `runbooks/`. A convention that says "back it up" without a
-tested restore is not a backup.
+[runbooks/sealed-secrets-key-backup-and-restore.md](../runbooks/sealed-secrets-key-backup-and-restore.md).
+A convention that says "back it up" without a tested restore is not a backup.
 
 **The restore path must be tested at least once.** An untested backup is a
 hypothesis.
