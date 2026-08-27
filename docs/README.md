@@ -25,7 +25,10 @@ New to the programme? Read in this order:
    and the five constraints that bite.
 8. **[Gateway API and VirtualService Conventions](gateway-conventions.md)** — how app teams
    route traffic through the mesh: ownership boundary, naming, TLS.
-9. **[ADRs](adr/)** — why things are the way they are.
+9. **[DNS Records](dns-records.md)** — how a hostname becomes a Route 53 record,
+   what external-dns will and will not touch, and the three changes that break
+   the zone irreversibly.
+10. **[ADRs](adr/)** — why things are the way they are.
 
 ## Quick reference
 
