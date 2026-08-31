@@ -45,6 +45,20 @@ statements — a stack trace goes *inside* a field (§4), not across lines.
 | `level` | exactly one of `debug` `info` `warn` `error`, lowercase | A fixed vocabulary is what makes "show all errors" reliable |
 | `message` | human-readable text | The part a person reads |
 
+**Search on `@timestamp`, not on `timestamp`.** The two are not the same
+thing, and the distinction matters the first time you build a dashboard:
+
+- **`@timestamp`** is set by the pipeline from the container runtime's record
+  of when the line was written. It is on **every** document, it is what
+  Kibana's time filter uses by default, and it is what you filter and sort by.
+- **`timestamp`** is *your* value — your application's claim about when the
+  event happened — kept only when you emit one. It can differ from
+  `@timestamp` when a program buffers or delays its own writing.
+
+Emitting `timestamp` is still worth doing: it is the only record of event time
+as opposed to write time. Just do not expect it to be the field a dashboard
+sorts on.
+
 Anything a language's standard logging library can produce in one line of
 setup. That is deliberate: a three-field demand gets obeyed.
 
@@ -76,8 +90,13 @@ writes these, and they cannot be spoofed by the line's content:
 Then one of two paths:
 
 - **Line parses as JSON** → fields extracted, known variants renamed to the
-  canonical names (`ts`/`time` → `timestamp`, `msg` → `message`,
+  canonical names (`ts` → `timestamp`, `msg` → `message`,
   `severity` → `level`), fully searchable.
+
+  The pipeline also sets **`@timestamp`** on every document from the container
+  runtime's own record of the line, and drops the runtime's `time` field
+  afterwards — it is the same instant as `@timestamp`, and carrying both put a
+  duplicate on every line.
 - **Line does not parse** → stored whole in a single `log` field with only the
   Kubernetes fields attached. Still retained, but not filterable by level,
   time or any field. Non-conforming logs are second-class by consequence, not
