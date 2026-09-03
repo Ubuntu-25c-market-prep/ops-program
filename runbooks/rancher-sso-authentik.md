@@ -59,6 +59,34 @@ You also need the four authentik groups to exist already: `cto`, `pm`, `devops`,
 (`gitops-flux/infrastructures/base/argo-cd/helmrelease.yaml`), and they must
 match exactly, including case.
 
+### Know this before you start: the accounts have no email addresses
+
+Stage 05 created all seventeen authentik users without an email address, while
+SES was still in the sandbox, and authentik's user-settings flow does not let
+people add their own. **This has already broken one integration.** Grafana
+requires an email for `generic_oauth`; when userinfo carried none it fell back
+to a GitHub-shaped `<api_url>/emails` endpoint that authentik does not serve,
+and the 404 surfaced to the user as `Login failed - internal error` with nothing
+pointing at the cause. gitops-flux#177 worked around it by mapping Grafana's
+email field onto the username (`email_attribute_path: preferred_username`).
+
+Rancher is **expected** to survive this, because it keys users on the OIDC `sub`
+claim rather than on email. That is an expectation, not a verified result — it
+has not been tested on this cluster. Given it already cost the platform one
+confusing outage, check what the token actually carries before you conclude
+Rancher is broken:
+
+```bash
+curl -s https://auth.25c-team1.art/application/o/rancher/.well-known/openid-configuration \
+  | jq -r '.userinfo_endpoint'
+```
+
+If login fails with a message about a missing or invalid user rather than a
+redirect or discovery error, this is the first thing to suspect, and the fix is
+the same one Grafana is waiting on: set real email addresses on the authentik
+users. Do not reach for a claim-mapping workaround in Rancher before checking
+whether `sub` alone was enough.
+
 ## Immediate action — the authentik half
 
 In the authentik admin interface at `https://auth.25c-team1.art`:
@@ -97,6 +125,19 @@ Then **Applications → Applications → Create**:
 | Name | `Rancher` |
 | Slug | `rancher` |
 | Provider | `rancher` |
+| Launch URL | `https://rancher.25c-team1.art` |
+
+**Set the Launch URL.** Left blank, the provider still works — but Rancher does
+not appear as a clickable tile on the authentik dashboard the way Grafana and
+Argo CD do, and the first report you get will be "SSO is broken for Rancher"
+when it is only invisible. This field is the entire difference.
+
+Expect **two clicks, not one.** The tile takes the user to Rancher's login page,
+where they still have to press the Generic OIDC button; Rancher does not accept
+an IdP-initiated login the way a tile implies. Grafana and Argo CD feel like one
+click because they redirect straight out to authentik, which already has the
+session. This is Rancher behaving normally, not a misconfiguration — say so
+before someone reopens it as a bug.
 
 **The slug is load-bearing.** It is what makes the issuer URL, and a mismatch
 here produces a discovery failure that reads as though authentik were down.
@@ -208,6 +249,22 @@ kubectl get users.management.cattle.io \
 ```
 
 ## Diagnosis
+
+**"Grafana and Argo CD are on the authentik dashboard and Rancher is not."**
+Check the obvious thing first: has this runbook been run at all? Grafana and
+Argo CD each got their OIDC config merged as Helm values in `gitops-flux`
+(#176/#177 and #175/#178 respectively) *and* an authentik application created by
+hand. Rancher's auth config is neither — no PR to `gitops-flux` configures it,
+so there is nothing in Git to point at as evidence it was done:
+
+```bash
+kubectl get authconfig genericoidc -o jsonpath='{.enabled}{"\n"}'
+```
+
+`false`, or a `NotFound`, means SSO was never enabled and the tile is absent
+because the application does not exist. If that returns `true`, the provider is
+configured and the missing tile is just an unset **Launch URL** on the authentik
+application — see the authentik half above.
 
 **Browser redirects to authentik, logs in, and returns to a Rancher error.**
 The browser leg works and the server-to-server leg does not. Rancher itself must
