@@ -13,3 +13,4 @@ prevention. If you cannot fill in "prevention", the incident is not finished.
 |---|---|
 | [cost-freeze-triggered.md](cost-freeze-triggered.md) | Spend crossed the ceiling and the SCP attached |
 | [onboard-to-aws.md](onboard-to-aws.md) | Giving someone their AWS sign-in, and the three ceilings behind an AccessDenied |
+| [rancher-sso-authentik.md](rancher-sso-authentik.md) | Putting Rancher behind authentik, the group-to-role mapping, and getting back in when it locks |
