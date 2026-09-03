@@ -127,17 +127,61 @@ Then **Applications → Applications → Create**:
 | Provider | `rancher` |
 | Launch URL | `https://rancher.25c-team1.art` |
 
-**Set the Launch URL.** Left blank, the provider still works — but Rancher does
-not appear as a clickable tile on the authentik dashboard the way Grafana and
-Argo CD do, and the first report you get will be "SSO is broken for Rancher"
-when it is only invisible. This field is the entire difference.
+**Set the Launch URL**, or the application has no clickable tile on the
+authentik dashboard. `https://rancher.25c-team1.art/dashboard/auth/login` is the
+right value and is as good as it gets — see the next section for why.
 
-Expect **two clicks, not one.** The tile takes the user to Rancher's login page,
-where they still have to press the Generic OIDC button; Rancher does not accept
-an IdP-initiated login the way a tile implies. Grafana and Argo CD feel like one
-click because they redirect straight out to authentik, which already has the
-session. This is Rancher behaving normally, not a misconfiguration — say so
-before someone reopens it as a bug.
+### Rancher is two clicks and cannot be made one. Stop trying.
+
+This question will be asked. Answer it once with the evidence rather than
+re-investigating, because the investigation is a dead end every time.
+
+The tile lands the user on Rancher's login page and they must still press
+**Log in with OIDC**. Grafana is one click. The difference is not configuration
+on our side — it is that **Grafana has a URL that starts a login and Rancher
+does not**:
+
+| App | Launch URL | What that URL actually is |
+|---|---|---|
+| Grafana | `/login/generic_oauth` | **302** straight to authentik — an endpoint that *begins* the flow, `state` and PKCE minted server-side |
+| Argo CD | `/auth/login` | same shape — a flow starter |
+| Rancher | `/dashboard/auth/login` | **200** — a *page with a button*. Rancher offers nothing else to link to |
+
+Rancher's login is a Vue app that assembles the OIDC request **in the browser,
+after the page has loaded**. So the flow can only begin once you are already
+looking at the page, and the button press *is* the beginning. There is no
+earlier point to link to.
+
+Rancher also refuses any login it did not start itself. When it starts one it
+mints a one-time `state` and keeps a copy; authentik returns your half; Rancher
+compares them. A cold link therefore fails, and this has been tested on this
+cluster — a valid, freshly issued authentik code delivered to the callback with
+no `state`:
+
+```
+https://rancher.25c-team1.art/verify-auth?code=e2995f17b3f64351b1c5aab1f03c26a6&state=
+  -> 404  "The page you were looking for doesn't exist!"
+```
+
+Nothing was misconfigured. Rancher discarded a perfectly good login because it
+had no matching ticket. That is the anti-forgery check doing its job, and it is
+also what makes an IdP-initiated tile impossible.
+
+Four independent confirmations, so nobody needs a fifth:
+
+1. All 171 Rancher settings on this instance — no auto-redirect option.
+   `hide-local-cluster` hides the local *cluster*, not local *login*.
+2. `rancher/dashboard` login page source — reads `LOCAL`, `IS_SSO`, `IS_SLO`,
+   `TIMED_OUT`, `LOGGED_OUT`, `err`; no auto-redirect, and no auto-trigger even
+   when exactly one non-local provider is configured.
+3. The 404 above.
+4. [rancher/rancher#29376](https://github.com/rancher/rancher/issues/29376),
+   "Option to disable default login and auto redirect to IdP" — opened October
+   2020, still **open**. Rancher's own users have wanted this for six years.
+
+The only mechanism that would work is a custom Rancher UI extension that presses
+the button for you: JavaScript written against dashboard internals, maintained
+across upgrades, to remove one click. Do not.
 
 **The slug is load-bearing.** It is what makes the issuer URL, and a mismatch
 here produces a discovery failure that reads as though authentik were down.
@@ -250,21 +294,57 @@ kubectl get users.management.cattle.io \
 
 ## Diagnosis
 
+**START HERE: can Rancher verify authentik's certificate?**
+
+Run this before forming any theory. It is one command and it has already been
+the answer once:
+
+```bash
+kubectl -n cattle-system exec deploy/rancher -- \
+  curl -sS https://auth.25c-team1.art/application/o/token/
+```
+
+`curl: (60) SSL certificate problem: unable to get local issuer certificate`
+means Rancher cannot complete the token exchange and **no amount of auth config
+will help**. `405` is the healthy answer (the endpoint is POST-only).
+
+This is not hypothetical — it is what was actually wrong on this cluster, and it
+cost a day of looking in the wrong place. `rancher/rancher:v2.14.3` sets
+`SSL_CERT_DIR=/etc/rancher/ssl` in the image; with `privateCA: false` nothing is
+mounted there and the directory does not exist, so Rancher's entire outbound
+trust store is empty. gitops-flux#179 pins `SSL_CERT_DIR=/etc/ssl/certs` in the
+overlay's postRenderer. If that patch is ever dropped, this returns.
+
+The tell is the shape of the failure: **the browser leg works and the login
+still fails.** Users reach the authentik login screen normally, because the
+browser never consults Rancher's trust store — only the server-to-server code
+exchange behind it does. Anything that presents as "SSO is broken but authentik
+looks fine" should come here first.
+
+```bash
+# confirm it is trust and not connectivity - this returns 200 when it is
+kubectl -n cattle-system exec deploy/rancher -- curl -sSk -o /dev/null \
+  -w '%{http_code}\n' https://auth.25c-team1.art/application/o/token/
+```
+
 **"Grafana and Argo CD are on the authentik dashboard and Rancher is not."**
-Check the obvious thing first: has this runbook been run at all? Grafana and
-Argo CD each got their OIDC config merged as Helm values in `gitops-flux`
-(#176/#177 and #175/#178 respectively) *and* an authentik application created by
-hand. Rancher's auth config is neither — no PR to `gitops-flux` configures it,
-so there is nothing in Git to point at as evidence it was done:
+Check whether the provider is enabled at all:
 
 ```bash
 kubectl get authconfig genericoidc -o jsonpath='{.enabled}{"\n"}'
 ```
 
-`false`, or a `NotFound`, means SSO was never enabled and the tile is absent
-because the application does not exist. If that returns `true`, the provider is
-configured and the missing tile is just an unset **Launch URL** on the authentik
-application — see the authentik half above.
+`false` or `NotFound` means SSO was never enabled. `true` means it is
+configured, and a missing tile is an unset **Launch URL** on the authentik
+application.
+
+Be careful with this one. Because no PR to `gitops-flux` can configure Rancher's
+auth, there is nothing in Git to confirm the work was done, and it is very easy
+to conclude "nobody ever set this up" when in fact it was set up correctly and
+is failing for the TLS reason above. Check the `AuthConfig` before believing
+Git. A `genericoidc_user://` principal on any user in
+`kubectl get users.management.cattle.io` proves someone has logged in
+successfully at some point.
 
 **Browser redirects to authentik, logs in, and returns to a Rancher error.**
 The browser leg works and the server-to-server leg does not. Rancher itself must
