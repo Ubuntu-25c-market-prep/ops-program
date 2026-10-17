@@ -106,7 +106,7 @@ ever holds anything that would end the business.
 | Contents | All `Secret`s labelled `sealedsecrets.bitnami.com/sealed-secrets-key`, as YAML |
 | Encryption | Platform KMS key |
 | Read access | `@utils` and `@cto` only |
-| Refresh | Monthly, and after any controller key renewal |
+| Refresh | Once, then immediately after any deliberate key rotation |
 
 The procedure itself — the exact commands to back up and to restore — is
 `ops-program#19`, in `runbooks/`. A convention that says "back it up" without a
@@ -121,11 +121,29 @@ hypothesis.
 
 | Material | Rotates | Trigger |
 |---|---|---|
-| sealed-secrets controller keys | Every 30 days | Automatic; back up afterwards |
+| sealed-secrets controller keys | Not on a schedule | Deliberate rotation only; back up immediately afterwards |
 | Application secrets in `SealedSecret`s | Per the issuing system's policy | Re-seal and merge |
 | IRSA role sessions | Hourly | Automatic; nothing to do |
 | Personal AWS access | Per Identity Center session policy | Automatic |
 | GitHub PATs used against org repos | 90 days maximum | Calendar reminder |
+
+**The controller keys do not rotate on a timer, and that is deliberate.** The
+chart leaves `keyrenewperiod` empty, which the controller reads as its own
+default of 30 days rather than as "off" — so an unset field was already a
+policy of monthly renewal. `gitops-flux` pins `keyrenewperiod: "0"` to stop it.
+
+The reasoning is that automatic renewal is only safe when every renewal is
+followed by a backup. The controller retains superseded keys in etcd, but the
+Secrets Manager copy in §4 is point-in-time: one missed month and the newest
+active key exists in exactly one place again, which is the failure the backup
+exists to prevent. A recurring manual obligation is not a control. Renewal off
+makes the backup a one-time, verifiable task and turns rotation into an
+explicit operation with a person attached.
+
+Rotating the controller keys is therefore a decision, not an event. Trigger one
+on suspected key compromise, on operator offboarding where the key may have
+been handled, or when the platform's threat model changes — and back up
+immediately afterwards, before the new key exists in only one place.
 
 Rotating a sealed secret is an ordinary pull request: re-seal the new value, merge,
 Flux applies it. No out-of-band step, which is the point of the whole arrangement.
