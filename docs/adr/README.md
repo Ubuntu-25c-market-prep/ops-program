@@ -42,3 +42,4 @@ Not for: routine configuration, reversible tweaks, anything a comment covers.
 | [0012](0012-opencost-over-kubecost.md) | OpenCost over Kubecost for Kubernetes cost visibility | Proposed |
 | [0013](0013-node-capacity-from-karpenter-pools.md) | Node capacity from Karpenter pools split by failure tolerance | Proposed |
 | [0015](0015-flux-argo-boundary.md) | Flux owns the Argo CD control plane, Argo CD owns its custom resources | Proposed |
+| [0016](0016-teleport-community-edition.md) | Teleport Community Edition, and local users with MFA instead of SSO | Proposed |
